@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrailBrain – Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface2: #181818;
+  --surface3: #202020;
+  --border: #2a2a2a;
+  --border2: #333;
+  --text: #f0f0f0;
+  --muted: #606060;
+  --muted2: #404040;
+  --accent: #e8ff47;
+  --accent2: #ff6b35;
+  --green: #3ddc84;
+  --radius: 14px;
+  --phone-w: 390px;
+  --phone-h: 844px;
+}
+
+body {
+  background: #050505;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'DM Sans', sans-serif;
+  overflow: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    repeating-radial-gradient(ellipse 120% 60% at 50% 50%, transparent 0%, transparent 8%, rgba(232,255,71,0.012) 8.5%, transparent 9%),
+    repeating-radial-gradient(ellipse 160% 80% at 50% 50%, transparent 0%, transparent 15%, rgba(232,255,71,0.007) 15.5%, transparent 16%);
+  pointer-events: none;
+}
+
+.phone-shell {
+  width: var(--phone-w);
+  height: var(--phone-h);
+  background: var(--bg);
+  border-radius: 50px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px #222,
+    0 0 0 10px #0f0f0f,
+    0 0 0 11px #1a1a1a,
+    0 60px 120px rgba(0,0,0,0.9),
+    inset 0 0 80px rgba(232,255,71,0.015);
+  position: relative;
+}
+
+.phone-shell::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    repeating-radial-gradient(ellipse 200% 100% at 50% 90%, transparent 0, transparent 7%, rgba(255,255,255,0.012) 7.5%, transparent 8%),
+    repeating-radial-gradient(ellipse 300% 150% at 50% 90%, transparent 0, transparent 18%, rgba(255,255,255,0.007) 18.5%, transparent 19%);
+  pointer-events: none; z-index: 0;
+}
+
+/* STATUS BAR */
+.status-bar {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 44px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px; color: var(--text);
+  z-index: 100;
+}
+.status-icons { display: flex; gap: 6px; align-items: center; }
+
+/* SCREENS */
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  padding-top: 44px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateX(24px);
+  z-index: 1; overflow: hidden;
+}
+.screen.active { opacity: 1; pointer-events: all; transform: translateX(0); }
+.screen.exit { opacity: 0; transform: translateX(-24px); }
+
+/* SCROLLABLE BODY */
+.scroll-body {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+}
+.scroll-body::-webkit-scrollbar { display: none; }
+
+/* TAB BAR */
+.tab-bar {
+  height: 82px; flex-shrink: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: flex-start;
+  padding-top: 10px;
+  position: relative; z-index: 50;
+}
+.tab-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; padding: 4px 0;
+  color: var(--muted);
+  font-size: 10px; letter-spacing: 0.5px;
+  transition: color 0.2s;
+}
+.tab-item.active { color: var(--accent); }
+.tab-icon { font-size: 20px; line-height: 1; }
+
+/* TYPOGRAPHY */
+.section-title {
+  font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted);
+  padding: 20px 20px 8px;
+}
+.page-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px; letter-spacing: 2px;
+  color: var(--text); line-height: 1;
+}
+
+/* PROFILE HEADER */
+.profile-header {
+  padding: 20px 20px 0;
+  display: flex; align-items: center; gap: 16px;
+}
+.avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, #a8cc00 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+  color: #0a0a0a; flex-shrink: 0;
+  position: relative;
+}
+.avatar-edit {
+  position: absolute; bottom: 0; right: 0;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; cursor: pointer;
+}
+.profile-info .name { font-size: 20px; font-weight: 600; color: var(--text); }
+.profile-info .email { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.profile-info .since { font-size: 11px; color: var(--muted2); margin-top: 4px; }
+
+/* COMPLETION BAR */
+.completion-card {
+  margin: 16px 20px 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.completion-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.completion-label { font-size: 12px; color: var(--muted); }
+.completion-pct { font-size: 13px; font-weight: 600; color: var(--accent); }
+.completion-track {
+  height: 4px; background: var(--border);
+  border-radius: 2px; overflow: hidden;
+}
+.completion-fill {
+  height: 100%; background: var(--accent);
+  border-radius: 2px; transition: width 0.6s ease;
+}
+.completion-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+/* CRITERIA GROUPS */
+.criteria-group {
+  margin: 0 20px 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.criteria-row {
+  display: flex; align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  gap: 12px;
+  position: relative;
+}
+.criteria-row:last-child { border-bottom: none; }
+.criteria-row:hover { background: var(--surface2); }
+.criteria-row:active { background: var(--surface3); }
+
+.crit-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+.crit-body { flex: 1; min-width: 0; }
+.crit-label { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.crit-value {
+  font-size: 14px; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.crit-value.empty { color: var(--muted2); font-style: italic; font-weight: 400; }
+.crit-status { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+.dot-filled { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.dot-empty { width: 7px; height: 7px; border-radius: 50%; background: var(--muted2); }
+.chevron { color: var(--muted2); font-size: 14px; }
+
+/* SECTION BADGE — source of data */
+.source-badge {
+  font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 4px;
+  background: rgba(232,255,71,0.1); color: var(--accent);
+  border: 1px solid rgba(232,255,71,0.2);
+  flex-shrink: 0;
+}
+.source-badge.manual {
+  background: rgba(255,255,255,0.05); color: var(--muted);
+  border-color: var(--border);
+}
+
+/* DANGER ZONE */
+.danger-row {
+  display: flex; align-items: center;
+  padding: 14px 16px; gap: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.danger-row:hover { background: rgba(255,60,60,0.05); }
+.danger-row .crit-value { color: #ff4757; }
+
+/* ── EDIT SHEET ── */
+.sheet-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.sheet-overlay.open { opacity: 1; pointer-events: all; }
+
+.edit-sheet {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border2);
+  border-radius: 24px 24px 0 0;
+  padding: 0 0 40px;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+  max-height: 75%;
+  overflow-y: auto;
+}
+.edit-sheet::-webkit-scrollbar { display: none; }
+.sheet-overlay.open .edit-sheet { transform: translateY(0); }
+
+.sheet-handle {
+  width: 36px; height: 4px;
+  background: var(--border2); border-radius: 2px;
+  margin: 12px auto 0;
+}
+.sheet-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 4px;
+}
+.sheet-title { font-size: 16px; font-weight: 600; color: var(--text); }
+.sheet-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--muted); font-size: 14px;
+}
+.sheet-body { padding: 12px 20px 0; }
+
+/* SHEET INPUTS */
+.sheet-input {
+  width: 100%;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 13px 15px;
+  color: var(--text); font-family: 'DM Sans', sans-serif;
+  font-size: 15px; outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 10px;
+}
+.sheet-input:focus { border-color: var(--accent); }
+
+.sheet-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.sh-chip {
+  padding: 9px 16px;
+  border: 1px solid var(--border); border-radius: 100px;
+  font-size: 13px; color: var(--text); cursor: pointer;
+  transition: all 0.2s; background: transparent;
+  font-family: 'DM Sans', sans-serif;
+}
+.sh-chip.on { border-color: var(--accent); background: rgba(232,255,71,0.1); color: var(--accent); }
+
+.sheet-picker-row {
+  display: flex; align-items: center; justify-content: center; gap: 20px;
+  margin: 12px 0;
+}
+.sh-picker { display: flex; flex-direction: column; align-items: center; }
+.sh-val {
+  font-family: 'Bebas Neue', sans-serif; font-size: 60px;
+  color: var(--white, #fff); line-height: 1;
+}
+.sh-unit { font-size: 12px; color: var(--muted); }
+.sh-arrow {
+  background: none; border: none; cursor: pointer;
+  color: var(--text); font-size: 22px; padding: 8px;
+}
+.sh-arrow:hover { color: var(--accent); }
+
+.sh-save {
+  width: 100%; background: var(--accent); color: #0a0a0a;
+  border: none; border-radius: var(--radius);
+  padding: 15px; font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  margin-top: 16px; transition: opacity 0.2s;
+}
+.sh-save:hover { opacity: 0.9; }
+
+.sh-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+
+/* RACE SEARCH IN SHEET */
+.sh-search {
+  display: flex; align-items: center;
+  background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; gap: 8px; margin-bottom: 10px;
+}
+.sh-search input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-size: 14px; font-family: 'DM Sans', sans-serif;
+}
+.sh-race-opt {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.sh-race-opt:last-child { border: none; }
+.sh-race-opt:hover .sh-race-name { color: var(--accent); }
+.sh-race-badge {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent2), #ff4757);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.sh-race-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.sh-race-meta { font-size: 11px; color: var(--muted); }
+
+/* MINI CALENDAR */
+.mini-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.mini-cal-month { font-size: 14px; font-weight: 600; color: var(--text); }
+.mini-cal-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px; }
+.mini-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+.mini-cal-dh { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 6px; }
+.mini-cal-dh span { font-size: 10px; color: var(--muted); text-align: center; }
+.mini-day {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--text); border-radius: 50%; cursor: pointer;
+}
+.mini-day:hover:not(.mcal-empty) { background: var(--border); }
+.mini-day.mcal-sel { background: var(--accent); color: #0a0a0a; font-weight: 700; }
+.mini-day.mcal-empty { pointer-events: none; }
+
+/* ANIMATIONS */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.screen.active .scroll-body > * {
+  animation: fadeUp 0.35s ease both;
+}
+.screen.active .scroll-body > *:nth-child(1) { animation-delay: 0.04s; }
+.screen.active .scroll-body > *:nth-child(2) { animation-delay: 0.08s; }
+.screen.active .scroll-body > *:nth-child(3) { animation-delay: 0.12s; }
+.screen.active .scroll-body > *:nth-child(4) { animation-delay: 0.16s; }
+.screen.active .scroll-body > *:nth-child(5) { animation-delay: 0.20s; }
+.screen.active .scroll-body > *:nth-child(6) { animation-delay: 0.24s; }
+.screen.active .scroll-body > *:nth-child(7) { animation-delay: 0.28s; }
+</style>
+</head>
+<body>
+<div class="phone-shell">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span>17:18</span>
+    <div class="status-icons">
+      <span style="font-size:12px;">●●●</span>
+      <span style="font-size:11px;">WiFi</span>
+      <span style="font-size:11px;">🔋</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       SCREEN: PROFILE
+  ═══════════════════════════════════ -->
+  <div class="screen active" id="s-profile">
+    <div class="scroll-body">
+
+      <!-- HEADER -->
+      <div class="profile-header">
+        <div class="avatar">
+          JS
+          <div class="avatar-edit">✏️</div>
+        </div>
+        <div class="profile-info">
+          <div class="name">John Smith</div>
+          <div class="email">johnsmith@gmail.com</div>
+          <div class="since">Member since March 2026</div>
+        </div>
+      </div>
+
+      <!-- COMPLETION -->
+      <div class="completion-card">
+        <div class="completion-header">
+          <span class="completion-label">Profile completion</span>
+          <span class="completion-pct" id="pct-label">75%</span>
+        </div>
+        <div class="completion-track">
+          <div class="completion-fill" id="pct-bar" style="width:75%"></div>
+        </div>
+        <div class="completion-hint" id="pct-hint">Complete your race date & time objective to unlock your training plan</div>
+      </div>
+
+      <!-- ── SECTION: RUNNER PROFILE ── -->
+      <div class="section-title">Runner profile</div>
+      <div class="criteria-group">
+
+        <div class="criteria-row" onclick="openSheet('weekly-hours')">
+          <div class="crit-icon">⏱</div>
+          <div class="crit-body">
+            <div class="crit-label">Weekly training hours</div>
+            <div class="crit-value" id="v-weekly-hours">14 hours / week</div>
+          </div>
+          <div class="crit-status">
+            <div class="dot-filled"></div>
+            <span class="source-badge">Onboarding</span>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+
+        <div class="criteria-row" onclick="openSheet('session-length')">
+          <div class="crit-icon">🏃</div>
+          <div class="crit-body">
+            <div class="crit-label">Max session length</div>
+            <div class="crit-value" id="v-session-length">3 hours</div>
+          </div>
+          <div class="crit-status">
+            <div class="dot-filled"></div>
+            <span class="source-badge">Onboarding</span>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+
+        <div class="criteria-row" onclick="openSheet('terrain')">
+          <div class="crit-icon">⛰️</div>
+          <div class="crit-body">
+            <div class="crit-label">Training environments</div>
+            <div class="crit-value" id="v-terrain">Moderately hilly, Mountainous</div>
+          </div>
+          <div class="crit-status">
+            <div class="dot-filled"></div>
+            <span class="source-badge">Onboarding</span>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+
+        <div class="criteria-row" onclick="openSheet('connected-apps')">
+          <div class="crit-icon">📲</div>
+          <div class="crit-body">
+            <div class="crit-label">Connected training apps</div>
+            <div class="crit-value" id="v-apps">Garmin, Strava</div>
+          </div>
+          <div class="crit-status">
+            <div class="dot-filled"></div>
+            <span class="source-badge">Onboarding</span>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+
+      </div>
+
+      <!-- ── SECTION: RACE ── -->
+      <div class="section-title">Target race</div>
+      <div class="criteria-group">
+
+        <div class="criteria-row" onclick="openSheet('race-type')">
+          <div class="crit-icon">🗺️</div>
+          <div class="crit-body">
+            <div class="crit-label">Race type</div>
+            <div class="crit-value" id="v-race-type">Existing trail</div>
+          </div>
+          <div class="crit-status">
+            <div class="dot-filled"></div>
+            <span class="source-badge">Onboarding</span>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+
+        <div class="criteria-row" onclick="openSheet('race-name')">
+          <div class="crit-icon">🏅</div>
+          <div class="crit-body">
+            <div class="crit-label">Race name</div>
+            <div class="crit-value" id="v-race-name">UTMB Official Trail</div>
+          </div>
+          <div class="crit-status">
+            <div class="dot-filled"></div>
+            <span class="source-badge">Onboarding</span>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+
+        <div class="criteria-row" onclick="openSheet('race-date')">
+          <div class="crit-icon">📅</div>
+          <div class="crit-body">
+            <div class="crit-label">Race date</div>
+            <div class="crit-value empty" id="v-race-date">Not set — tap to add</div>
+          </div>
+          <div class="crit-status">
+            <div class="dot-empty"></div>
+            <span class="source-badge manual">Missing</span>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+
+        <div class="criteria-row" onclick="openSheet('time-objective')">
+          <div class="crit-icon">🎯</div>
+          <div class="crit-body">
+            <div class="crit-label">Time objective</div>
+            <div class="crit-value empty" id="v-time-objective">Not set — tap to add</div>
+          </div>
+          <div class="crit-status">
+            <div class="dot-empty"></div>
+            <span class="source-badge manual">Missing</span>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+
+      </div>
+
+      <!-- ── SECTION: ACCOUNT ── -->
+      <div class="section-title">Account</div>
+      <div class="criteria-group">
+        <div class="criteria-row" onclick="openSheet('personal-info')">
+          <div class="crit-icon">👤</div>
+          <div class="crit-body">
+            <div class="crit-label">Personal info</div>
+            <div class="crit-value">John Smith · johnsmith@gmail.com</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+        <div class="criteria-row">
+          <div class="crit-icon">🔔</div>
+          <div class="crit-body">
+            <div class="crit-label">Notifications</div>
+            <div class="crit-value">Workout reminders on</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+        <div class="criteria-row">
+          <div class="crit-icon">🌍</div>
+          <div class="crit-body">
+            <div class="crit-label">Units</div>
+            <div class="crit-value">Kilometers, meters</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+      </div>
+
+      <!-- DANGER ZONE -->
+      <div class="section-title">Session</div>
+      <div class="criteria-group">
+        <div class="danger-row" onclick="alert('Reset onboarding — would restart the flow')">
+          <div class="crit-icon">🔄</div>
+          <div class="crit-body">
+            <div class="crit-label">Reset profile</div>
+            <div class="crit-value" style="color:var(--accent2)">Re-run onboarding</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+        <div class="danger-row" onclick="alert('Sign out')">
+          <div class="crit-icon">🚪</div>
+          <div class="crit-body">
+            <div class="crit-label">Account</div>
+            <div class="crit-value" style="color:#ff4757">Sign out</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+      </div>
+
+      <div style="height:16px;"></div>
+    </div><!-- /scroll-body -->
+
+    <!-- TAB BAR -->
+    <div class="tab-bar">
+      <div class="tab-item" onclick="alert('Training plan')">
+        <div class="tab-icon">📋</div>
+        <span>Training</span>
+      </div>
+      <div class="tab-item" onclick="alert('Race day')">
+        <div class="tab-icon">🏁</div>
+        <span>Race day</span>
+      </div>
+      <div class="tab-item" onclick="alert('Progress')">
+        <div class="tab-icon">📈</div>
+        <span>Progress</span>
+      </div>
+      <div class="tab-item active">
+        <div class="tab-icon">👤</div>
+        <span>Profile</span>
+      </div>
+    </div>
+
+    <!-- ═══ EDIT SHEET (lives inside s-profile) ═══ -->
+    <div class="sheet-overlay" id="sheet-overlay" onclick="maybeClose(event)">
+      <div class="edit-sheet" id="edit-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title" id="sheet-title">Edit</div>
+          <div class="sheet-close" onclick="closeSheet()">✕</div>
+        </div>
+        <div class="sheet-body" id="sheet-body">
+          <!-- dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /s-profile -->
+
+</div><!-- /phone-shell -->
+
+<script>
+// ──────────────────────────────────────────
+//  USER DATA MODEL — filled by onboarding
+// ──────────────────────────────────────────
+const user = {
+  name: 'John Smith',
+  email: 'johnsmith@gmail.com',
+  // Runner profile
+  weeklyHours: 14,
+  sessionLength: 3,
+  terrain: ['Moderately hilly (500m+)', 'Mountainous (1000m+)'],
+  apps: ['Garmin', 'Strava'],
+  // Race
+  raceType: 'Existing trail',
+  raceName: 'UTMB Official Trail',
+  raceDate: null,          // not filled yet
+  timeObjectiveH: null,    // not filled yet
+  timeObjectiveM: null,
+};
+
+// ──────────────────────────────────────────
+//  RENDER — push model into the UI
+// ──────────────────────────────────────────
+function renderProfile() {
+  setText('v-weekly-hours', `${user.weeklyHours} hours / week`);
+  setText('v-session-length', `${user.sessionLength} hour${user.sessionLength !== 1 ? 's' : ''}`);
+  setText('v-terrain', user.terrain.length
+    ? user.terrain.map(t => t.split(' (')[0]).join(', ')
+    : 'Not set', user.terrain.length === 0);
+  setText('v-apps', user.apps.length ? user.apps.join(', ') : 'None connected', user.apps.length === 0);
+  setText('v-race-type', user.raceType || 'Not set', !user.raceType);
+  setText('v-race-name', user.raceName || 'Not set', !user.raceName);
+
+  if (user.raceDate) {
+    const d = new Date(user.raceDate);
+    setText('v-race-date', d.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }));
+    updateDot('v-race-date', true);
+  } else {
+    setText('v-race-date', 'Not set — tap to add', true);
+    updateDot('v-race-date', false);
+  }
+
+  if (user.timeObjectiveH !== null) {
+    const m = String(user.timeObjectiveM || 0).padStart(2,'0');
+    setText('v-time-objective', `${user.timeObjectiveH}h ${m}min`);
+    updateDot('v-time-objective', true);
+  } else {
+    setText('v-time-objective', 'Not set — tap to add', true);
+    updateDot('v-time-objective', false);
+  }
+
+  updateCompletion();
+}
+
+function setText(id, val, empty = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = val;
+  el.classList.toggle('empty', empty);
+}
+
+function updateDot(valueId, filled) {
+  const row = document.getElementById(valueId)?.closest('.criteria-row');
+  if (!row) return;
+  const dot = row.querySelector('.dot-filled, .dot-empty');
+  const badge = row.querySelector('.source-badge');
+  if (dot) {
+    dot.className = filled ? 'dot-filled' : 'dot-empty';
+  }
+  if (badge) {
+    badge.textContent = filled ? 'Onboarding' : 'Missing';
+    badge.classList.toggle('manual', !filled);
+  }
+}
+
+function updateCompletion() {
+  const fields = [
+    user.weeklyHours, user.sessionLength,
+    user.terrain.length, user.apps.length,
+    user.raceType, user.raceName,
+    user.raceDate, user.timeObjectiveH
+  ];
+  const filled = fields.filter(f => f !== null && f !== undefined && f !== '' && f !== 0).length;
+  const pct = Math.round((filled / fields.length) * 100);
+  document.getElementById('pct-label').textContent = pct + '%';
+  document.getElementById('pct-bar').style.width = pct + '%';
+
+  const hints = {
+    100: '✅ Profile complete — your training plan is fully personalised',
+    75: 'Complete your race date & time objective to unlock your training plan',
+    50: 'Add your race details to personalise your plan',
+    0: 'Complete your profile to generate a training plan',
+  };
+  const key = pct >= 100 ? 100 : pct >= 75 ? 75 : pct >= 50 ? 50 : 0;
+  document.getElementById('pct-hint').textContent = hints[key];
+}
+
+// ──────────────────────────────────────────
+//  SHEET MANAGEMENT
+// ──────────────────────────────────────────
+let currentSheet = null;
+let sheetPickerValues = {};
+
+const sheets = {
+  'weekly-hours': {
+    title: 'Weekly training hours',
+    render() {
+      sheetPickerValues.h = user.weeklyHours;
+      return `
+        <p class="sh-label">Hours available per week</p>
+        <div class="sheet-picker-row">
+          <div class="sh-picker">
+            <button class="sh-arrow" onclick="spAdj('h',1,1,40)">▲</button>
+            <div class="sh-val" id="sp-h">${user.weeklyHours}</div>
+            <div class="sh-unit">hours</div>
+            <button class="sh-arrow" onclick="spAdj('h',-1,1,40)">▼</button>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:4px;">This helps calibrate your training volume</p>
+        <button class="sh-save" onclick="saveSheet('weekly-hours')">Save</button>`;
+    },
+    save() { user.weeklyHours = sheetPickerValues.h; }
+  },
+
+  'session-length': {
+    title: 'Max session length',
+    render() {
+      sheetPickerValues.h = user.sessionLength;
+      return `
+        <p class="sh-label">Longest session you can complete</p>
+        <div class="sheet-picker-row">
+          <div class="sh-picker">
+            <button class="sh-arrow" onclick="spAdj('h',1,1,12)">▲</button>
+            <div class="sh-val" id="sp-h">${user.sessionLength}</div>
+            <div class="sh-unit">hours</div>
+            <button class="sh-arrow" onclick="spAdj('h',-1,1,12)">▼</button>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:4px;">Used to plan your long run sessions</p>
+        <button class="sh-save" onclick="saveSheet('session-length')">Save</button>`;
+    },
+    save() { user.sessionLength = sheetPickerValues.h; }
+  },
+
+  'terrain': {
+    title: 'Training environments',
+    render() {
+      const opts = ['Flat treadmill','Inclined treadmill','Flat running terrain','Gently sloped (100m+)','Moderately hilly (500m+)','Mountainous (1000m+)'];
+      return `
+        <p class="sh-label">Select all that apply</p>
+        <div class="sheet-chips">
+          ${opts.map(o => `<div class="sh-chip${user.terrain.includes(o)?' on':''}" onclick="toggleTerrain(this,'${o}')">${o}</div>`).join('')}
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">We'll adapt your workouts to your available terrain</p>
+        <button class="sh-save" onclick="saveSheet('terrain')">Save</button>`;
+    },
+    save() { /* terrain saved inline via toggleTerrain */ }
+  },
+
+  'connected-apps': {
+    title: 'Connected apps',
+    render() {
+      const opts = ['Strava','Nike Run','Garmin','Kiprun'];
+      return `
+        <p class="sh-label">Select apps to import training data</p>
+        <div class="sheet-chips">
+          ${opts.map(o => `<div class="sh-chip${user.apps.includes(o)?' on':''}" onclick="toggleApp(this,'${o}')">${o}</div>`).join('')}
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">Imported data improves plan accuracy</p>
+        <button class="sh-save" onclick="saveSheet('connected-apps')">Save</button>`;
+    },
+    save() { /* saved inline */ }
+  },
+
+  'race-type': {
+    title: 'Race type',
+    render() {
+      return `
+        <p class="sh-label">What type of race are you targeting?</p>
+        <div class="sheet-chips" style="flex-direction:column;">
+          <div class="sh-chip${user.raceType==='Existing trail'?' on':''}" style="text-align:center;" onclick="setRaceType(this,'Existing trail')">🗺️ Existing trail</div>
+          <div class="sh-chip${user.raceType==='Custom one'?' on':''}" style="text-align:center;" onclick="setRaceType(this,'Custom one')">✏️ Custom one</div>
+        </div>
+        <button class="sh-save" onclick="saveSheet('race-type')" style="margin-top:16px;">Save</button>`;
+    },
+    save() { /* saved inline */ }
+  },
+
+  'race-name': {
+    title: 'Race name',
+    render() {
+      const races = [
+        { name:'UTMB Official Trail', meta:'176 km · Chamonix', icon:'🏔' },
+        { name:'UTMB Short Trail', meta:'72 km · Chamonix', icon:'⛰' },
+        { name:'UTMB XL Trail', meta:'176 km · Chamonix', icon:'🗻' },
+        { name:'Ultra-Trail du Mont Blanc', meta:'171 km · Chamonix', icon:'🏔' },
+        { name:'CCC – Courmayeur-Champex-Chamonix', meta:'101 km · Courmayeur', icon:'⛰' },
+      ];
+      return `
+        <p class="sh-label">Search for your race</p>
+        <div class="sh-search">
+          <span style="color:var(--muted)">🔍</span>
+          <input type="text" placeholder="Search races…" id="race-input" oninput="filterSheetRaces(this.value)" value="${user.raceName||''}">
+        </div>
+        <div id="sh-race-list">
+          ${races.map(r => `
+            <div class="sh-race-opt" onclick="pickRace('${r.name}')">
+              <div class="sh-race-badge">${r.icon}</div>
+              <div>
+                <div class="sh-race-name${user.raceName===r.name?' '+' ' : ''}">${r.name}</div>
+                <div class="sh-race-meta">${r.meta}</div>
+              </div>
+              ${user.raceName===r.name?'<span style="color:var(--accent);margin-left:auto;">✓</span>':''}
+            </div>`).join('')}
+        </div>
+        <button class="sh-save" onclick="saveSheet('race-name')" style="margin-top:8px;">Confirm</button>`;
+    },
+    save() { /* saved inline */ }
+  },
+
+  'race-date': {
+    title: 'Race date',
+    render() {
+      return `
+        <p class="sh-label">When is your race?</p>
+        <div id="mini-cal"></div>
+        <button class="sh-save" onclick="saveSheet('race-date')">Confirm date</button>`;
+    },
+    afterRender() { buildMiniCal(); },
+    save() { user.raceDate = miniCalSelected; }
+  },
+
+  'time-objective': {
+    title: 'Time objective',
+    render() {
+      sheetPickerValues.h = user.timeObjectiveH ?? 29;
+      sheetPickerValues.m = user.timeObjectiveM ?? 30;
+      return `
+        <p class="sh-label">Your goal finish time</p>
+        <div class="sheet-picker-row">
+          <div class="sh-picker">
+            <button class="sh-arrow" onclick="spAdj('h',1,0,99)">▲</button>
+            <div class="sh-val" id="sp-h">${sheetPickerValues.h}</div>
+            <div class="sh-unit">hours</div>
+            <button class="sh-arrow" onclick="spAdj('h',-1,0,99)">▼</button>
+          </div>
+          <div style="font-family:'Bebas Neue';font-size:60px;color:var(--border);line-height:1;">:</div>
+          <div class="sh-picker">
+            <button class="sh-arrow" onclick="spAdj('m',5,0,55)">▲</button>
+            <div class="sh-val" id="sp-m">${String(sheetPickerValues.m).padStart(2,'0')}</div>
+            <div class="sh-unit">mins</div>
+            <button class="sh-arrow" onclick="spAdj('m',-5,0,55)">▼</button>
+          </div>
+        </div>
+        <button class="sh-save" onclick="saveSheet('time-objective')">Save</button>`;
+    },
+    save() {
+      user.timeObjectiveH = sheetPickerValues.h;
+      user.timeObjectiveM = sheetPickerValues.m;
+    }
+  },
+
+  'personal-info': {
+    title: 'Personal info',
+    render() {
+      return `
+        <p class="sh-label">Name</p>
+        <input class="sheet-input" id="pi-name" type="text" value="${user.name}" placeholder="Your name">
+        <p class="sh-label">Email</p>
+        <input class="sheet-input" id="pi-email" type="email" value="${user.email}" placeholder="email@example.com">
+        <button class="sh-save" onclick="saveSheet('personal-info')">Save</button>`;
+    },
+    save() {
+      user.name = document.getElementById('pi-name').value || user.name;
+      user.email = document.getElementById('pi-email').value || user.email;
+      document.querySelector('.profile-info .name').textContent = user.name;
+      document.querySelector('.profile-info .email').textContent = user.email;
+      document.querySelector('.avatar').childNodes[0].textContent =
+        user.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    }
+  }
+};
+
+// ──────────────────────────────────────────
+//  SHEET HELPERS
+// ──────────────────────────────────────────
+function openSheet(key) {
+  currentSheet = key;
+  const s = sheets[key];
+  document.getElementById('sheet-title').textContent = s.title;
+  document.getElementById('sheet-body').innerHTML = s.render();
+  document.getElementById('sheet-overlay').classList.add('open');
+  if (s.afterRender) setTimeout(s.afterRender, 50);
+}
+
+function closeSheet() {
+  document.getElementById('sheet-overlay').classList.remove('open');
+  currentSheet = null;
+}
+
+function maybeClose(e) {
+  if (e.target === document.getElementById('sheet-overlay')) closeSheet();
+}
+
+function saveSheet(key) {
+  sheets[key].save();
+  closeSheet();
+  renderProfile();
+}
+
+// ── Picker ──
+function spAdj(key, delta, min, max) {
+  sheetPickerValues[key] = Math.min(max, Math.max(min, (sheetPickerValues[key] || 0) + delta));
+  const el = document.getElementById('sp-' + key);
+  if (el) el.textContent = key === 'm'
+    ? String(sheetPickerValues[key]).padStart(2,'0')
+    : sheetPickerValues[key];
+}
+
+// ── Terrain chips ──
+function toggleTerrain(el, val) {
+  el.classList.toggle('on');
+  if (el.classList.contains('on')) {
+    if (!user.terrain.includes(val)) user.terrain.push(val);
+  } else {
+    user.terrain = user.terrain.filter(t => t !== val);
+  }
+}
+
+// ── App chips ──
+function toggleApp(el, val) {
+  el.classList.toggle('on');
+  if (el.classList.contains('on')) {
+    if (!user.apps.includes(val)) user.apps.push(val);
+  } else {
+    user.apps = user.apps.filter(a => a !== val);
+  }
+}
+
+// ── Race type ──
+function setRaceType(el, val) {
+  el.closest('.sheet-chips').querySelectorAll('.sh-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  user.raceType = val;
+}
+
+// ── Race pick ──
+function pickRace(name) {
+  user.raceName = name;
+  document.querySelectorAll('.sh-race-opt').forEach(r => {
+    const n = r.querySelector('.sh-race-name').textContent;
+    const tick = r.querySelector('span[style]');
+    if (tick) tick.remove();
+    if (n === name) {
+      r.insertAdjacentHTML('beforeend', '<span style="color:var(--accent);margin-left:auto;">✓</span>');
+    }
+  });
+}
+
+// ── Race search filter ──
+function filterSheetRaces(val) {
+  document.querySelectorAll('.sh-race-opt').forEach(r => {
+    const name = r.querySelector('.sh-race-name').textContent.toLowerCase();
+    r.style.display = name.includes(val.toLowerCase()) ? '' : 'none';
+  });
+}
+
+// ── Mini calendar ──
+let miniCalY = 2026, miniCalM = 8, miniCalSelected = user.raceDate;
+
+function buildMiniCal() {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days = ['M','T','W','T','F','S','S'];
+  const firstDay = new Date(miniCalY, miniCalM, 1).getDay();
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  const total = new Date(miniCalY, miniCalM + 1, 0).getDate();
+  const selStr = miniCalSelected ? new Date(miniCalSelected).toDateString() : null;
+
+  let html = `
+    <div class="mini-cal-header">
+      <button class="mini-cal-btn" onclick="miniCalNav(-1)">‹</button>
+      <span class="mini-cal-month">${months[miniCalM]} ${miniCalY}</span>
+      <button class="mini-cal-btn" onclick="miniCalNav(1)">›</button>
+    </div>
+    <div class="mini-cal-dh">${days.map(d=>`<span>${d}</span>`).join('')}</div>
+    <div class="mini-cal-grid">`;
+  for (let i=0;i<offset;i++) html += `<div class="mini-day mcal-empty"></div>`;
+  for (let d=1;d<=total;d++) {
+    const date = new Date(miniCalY, miniCalM, d);
+    const isSel = selStr && date.toDateString() === selStr;
+    html += `<div class="mini-day${isSel?' mcal-sel':''}" onclick="miniCalSelect(${d})">${d}</div>`;
+  }
+  html += '</div>';
+  document.getElementById('mini-cal').innerHTML = html;
+}
+
+function miniCalNav(d) {
+  miniCalM += d;
+  if (miniCalM > 11) { miniCalM = 0; miniCalY++; }
+  if (miniCalM < 0) { miniCalM = 11; miniCalY--; }
+  buildMiniCal();
+}
+
+function miniCalSelect(d) {
+  miniCalSelected = new Date(miniCalY, miniCalM, d).toISOString();
+  buildMiniCal();
+}
+
+// ──────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────
+renderProfile();
+</script>
+</body>
+</html>

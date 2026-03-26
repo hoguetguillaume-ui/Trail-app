@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrailBrain – Onboarding</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #f0f0f0;
+    --muted: #666;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --white: #ffffff;
+    --radius: 14px;
+    --phone-w: 390px;
+    --phone-h: 844px;
+  }
+
+  body {
+    background: #050505;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+  }
+
+  /* Topo background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-radial-gradient(ellipse 120% 60% at 50% 50%, transparent 0%, transparent 8%, rgba(232,255,71,0.015) 8.5%, transparent 9%),
+      repeating-radial-gradient(ellipse 160% 80% at 50% 50%, transparent 0%, transparent 15%, rgba(232,255,71,0.01) 15.5%, transparent 16%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .phone-shell {
+    position: relative;
+    width: var(--phone-w);
+    height: var(--phone-h);
+    background: var(--bg);
+    border-radius: 50px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px #222,
+      0 0 0 10px #0f0f0f,
+      0 0 0 11px #1a1a1a,
+      0 60px 120px rgba(0,0,0,0.9),
+      inset 0 0 80px rgba(232,255,71,0.02);
+    z-index: 1;
+  }
+
+  /* Topo texture inside phone */
+  .phone-shell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-radial-gradient(ellipse 200% 100% at 50% 80%, transparent 0, transparent 7%, rgba(255,255,255,0.015) 7.5%, transparent 8%),
+      repeating-radial-gradient(ellipse 250% 120% at 50% 80%, transparent 0, transparent 13%, rgba(255,255,255,0.01) 13.5%, transparent 14%),
+      repeating-radial-gradient(ellipse 300% 150% at 50% 80%, transparent 0, transparent 19%, rgba(255,255,255,0.008) 19.5%, transparent 20%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .status-bar {
+    position: absolute;
+    top: 0;
+    left: 0; right: 0;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    z-index: 10;
+  }
+
+  .status-icons { display: flex; gap: 5px; align-items: center; }
+  .status-icons svg { width: 14px; height: 14px; fill: var(--text); }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 44px 0 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    transform: translateX(30px);
+    z-index: 1;
+    overflow: hidden;
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(0);
+  }
+  .screen.exit {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    margin: 16px 24px 0;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* ─── BACK BTN ─── */
+  .back-btn {
+    width: 36px; height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    margin: 16px 24px 0;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+  .back-btn:hover { border-color: var(--accent); }
+  .back-btn svg { width: 14px; height: 14px; stroke: var(--text); }
+
+  /* ─── SHARED CONTENT ─── */
+  .screen-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 24px;
+    overflow-y: auto;
+  }
+  .screen-content::-webkit-scrollbar { display: none; }
+
+  h1.brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 2px;
+    color: var(--white);
+    line-height: 1;
+    margin-top: 8px;
+  }
+  .brand-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  h2.question {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--white);
+    line-height: 1.3;
+    margin-top: 28px;
+    margin-bottom: 28px;
+  }
+  h2.question.sm { font-size: 18px; margin-top: 20px; margin-bottom: 20px; }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  /* ─── INPUTS ─── */
+  .input-group { margin-bottom: 16px; }
+  .input-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  input[type=text], input[type=email], input[type=password] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--accent); }
+  ::placeholder { color: var(--muted); }
+
+  /* ─── BUTTONS ─── */
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-secondary {
+    width: 100%;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 15px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    margin-top: 10px;
+  }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  .or-divider {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin: 16px 0;
+    position: relative;
+  }
+  .or-divider::before, .or-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 35%;
+    height: 1px;
+    background: var(--border);
+  }
+  .or-divider::before { left: 0; }
+  .or-divider::after { right: 0; }
+
+  .social-btns { display: flex; gap: 12px; }
+  .social-btn {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 13px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.2s;
+  }
+  .social-btn:hover { border-color: var(--accent); }
+  .social-btn svg { width: 18px; height: 18px; }
+
+  /* ─── CHIP SELECTS ─── */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    padding: 12px 20px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .chip.selected, .chip:hover { border-color: var(--accent); background: rgba(232,255,71,0.08); color: var(--accent); }
+  .chip.selected { background: rgba(232,255,71,0.12); }
+
+  /* ─── OPTION CARDS ─── */
+  .option-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+  .option-card:hover { border-color: var(--accent); }
+  .option-card.selected { border-color: var(--accent); background: rgba(232,255,71,0.06); }
+  .option-card .opt-label { font-size: 15px; font-weight: 500; color: var(--text); }
+  .option-card .opt-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ─── SCROLL PICKER ─── */
+  .picker-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin: 20px 0;
+  }
+  .picker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .picker-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    color: var(--white);
+    line-height: 1;
+  }
+  .picker-unit {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .picker-arrow {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1;
+  }
+  .picker-arrow:hover { color: var(--accent); }
+
+  /* ─── CONNECT APPS ─── */
+  .app-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .app-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+  .app-card:hover, .app-card.selected { border-color: var(--accent); background: rgba(232,255,71,0.06); }
+  .app-card span { font-size: 13px; font-weight: 500; color: var(--text); }
+  .app-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+
+  /* ─── SEARCH ─── */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .search-bar input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .search-bar svg { width: 16px; height: 16px; stroke: var(--muted); flex-shrink: 0; }
+
+  .race-result {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    cursor: pointer;
+    background: var(--surface);
+    transition: all 0.2s;
+  }
+  .race-result:hover, .race-result.selected { border-color: var(--accent); background: rgba(232,255,71,0.06); }
+  .race-badge {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent2), #ff4757);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .race-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .race-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ─── CALENDAR ─── */
+  .calendar-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 4px;
+    margin-bottom: 16px;
+  }
+  .cal-month { font-size: 16px; font-weight: 600; color: var(--white); }
+  .cal-arrow { background: none; border: none; color: var(--text); cursor: pointer; font-size: 18px; padding: 4px 8px; }
+  .cal-arrow:hover { color: var(--accent); }
+  .cal-days-header { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; margin-bottom: 8px; }
+  .cal-days-header span { font-size: 11px; color: var(--muted); padding: 4px 0; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    color: var(--text);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .cal-day:hover:not(.empty) { background: var(--border); }
+  .cal-day.selected { background: var(--accent); color: #0a0a0a; font-weight: 700; }
+  .cal-day.today { color: var(--accent); font-weight: 600; }
+  .cal-day.empty { pointer-events: none; }
+
+  /* ─── TRAINING PLAN OUTPUT ─── */
+  .race-header-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .race-header-info .race-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .race-header-info .race-name-lg { font-size: 16px; font-weight: 700; color: var(--white); margin: 2px 0; }
+  .race-header-info .race-stats { font-size: 11px; color: var(--muted); }
+  .score-badge {
+    background: var(--accent2);
+    color: white;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+  }
+
+  .week-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .week-nav .wk { font-size: 16px; font-weight: 600; color: var(--white); }
+  .week-nav .wk-sub { font-size: 12px; color: var(--muted); }
+  .week-nav-btn { background: none; border: none; color: var(--text); cursor: pointer; font-size: 18px; padding: 4px 8px; }
+
+  .bar-chart {
+    display: flex; gap: 4px; align-items: flex-end;
+    height: 36px; margin-bottom: 20px;
+  }
+  .bar {
+    flex: 1;
+    background: var(--border);
+    border-radius: 3px;
+    transition: height 0.3s;
+  }
+  .bar.active { background: var(--accent); }
+
+  .workout-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .workout-card:hover { border-color: var(--accent); }
+  .workout-type { font-size: 14px; font-weight: 600; color: var(--white); margin-bottom: 6px; }
+  .workout-type.highlight { color: var(--accent); }
+  .workout-meta { display: flex; gap: 16px; }
+  .workout-meta span { font-size: 11px; color: var(--muted); }
+  .workout-meta span strong { display: block; font-size: 12px; color: var(--text); font-weight: 500; }
+  .chevron-r { color: var(--muted); font-size: 16px; }
+
+  .workload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .workload-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .workload-cell .wl-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 5px; }
+  .workload-cell .wl-val { font-size: 22px; font-weight: 600; color: var(--white); margin-top: 4px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot.red { background: var(--accent2); }
+  .dot.yellow { background: var(--accent); }
+
+  /* ─── LOADING ─── */
+  .loading-container {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+  }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 16px; color: var(--text); font-weight: 500; }
+
+  /* ─── INTRO SCREEN ─── */
+  .intro-art {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .intro-circles {
+    position: absolute;
+    width: 280px; height: 280px;
+  }
+  .intro-circles circle {
+    fill: none;
+    stroke: rgba(232,255,71,0.08);
+    stroke-width: 1;
+  }
+  .mountain-icon {
+    font-size: 64px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ─── TYPE SELECTION ─── */
+  .type-cards { display: flex; gap: 12px; }
+  .type-card {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+  .type-card:hover, .type-card.selected { border-color: var(--accent); background: rgba(232,255,71,0.08); }
+  .type-card .type-icon { font-size: 28px; margin-bottom: 8px; }
+  .type-card .type-label { font-size: 14px; font-weight: 600; color: var(--text); }
+
+  /* bottom safe area */
+  .bottom-safe { padding: 0 24px 40px; flex-shrink: 0; }
+
+  /* ─── STEP INDICATOR ─── */
+  .step-dots {
+    display: flex; gap: 6px; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .step-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.2s;
+  }
+  .step-dot.active { background: var(--accent); width: 20px; border-radius: 3px; }
+
+  /* animate in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .screen.active .screen-content > * {
+    animation: fadeUp 0.4s ease both;
+  }
+  .screen.active .screen-content > *:nth-child(1) { animation-delay: 0.05s; }
+  .screen.active .screen-content > *:nth-child(2) { animation-delay: 0.1s; }
+  .screen.active .screen-content > *:nth-child(3) { animation-delay: 0.15s; }
+  .screen.active .screen-content > *:nth-child(4) { animation-delay: 0.2s; }
+  .screen.active .screen-content > *:nth-child(5) { animation-delay: 0.25s; }
+</style>
+</head>
+<body>
+
+<div class="phone-shell">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span>17:18</span>
+    <div class="status-icons">
+      <svg viewBox="0 0 24 24"><path d="M1 6l11 11L23 6"/></svg>
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="4" height="10" rx="1"/><rect x="8" y="4" width="4" height="13" rx="1"/><rect x="14" y="1" width="4" height="16" rx="1"/><rect x="20" y="5" width="2" height="12" rx="1" opacity="0.3"/></svg>
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="11" rx="2"/><path d="M22 11v3"/></svg>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 1 — SPLASH / LOGIN
+  ══════════════════════════════════ -->
+  <div class="screen active" id="s-login">
+    <div class="screen-content" style="justify-content: space-between; padding-top: 40px;">
+      <div>
+        <div class="brand-sub">SALOMON / ULTRA</div>
+        <h1 class="brand">TRAIL<br>BRAIN</h1>
+        <p style="font-size:13px;color:var(--muted);margin-top:8px;">Train with purpose. Race with confidence.</p>
+      </div>
+      <div style="padding-bottom: 8px;">
+        <div class="input-group">
+          <label>Login or register</label>
+        </div>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" placeholder="JohnSmith@gmail.com" value="JohnSmith@gmail.com">
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" value="••••••••••••">
+        </div>
+        <button class="btn-primary" onclick="goTo('s-intro')">Continue</button>
+        <div class="or-divider">or continue with</div>
+        <div class="social-btns">
+          <button class="social-btn" onclick="goTo('s-intro')">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5c-.2 1.2-1 2.3-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285F4"/>
+              <path d="M12 22c2.7 0 5-0.9 6.7-2.4l-3.2-2.5c-.9.6-2 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.9v2.6C4.6 19.7 8 22 12 22z" fill="#34A853"/>
+              <path d="M6.2 13.8c-.2-.6-.3-1.2-.3-1.8s.1-1.2.3-1.8V7.6H2.9C2.3 8.8 2 10.4 2 12s.3 3.2.9 4.4l3.3-2.6z" fill="#FBBC05"/>
+              <path d="M12 5.7c1.5 0 2.8.5 3.9 1.5l2.9-2.9C17 2.8 14.7 2 12 2 8 2 4.6 4.3 2.9 7.6l3.3 2.6C7 7.5 9.3 5.7 12 5.7z" fill="#EA4335"/>
+            </svg>
+            Google
+          </button>
+          <button class="social-btn" onclick="goTo('s-intro')">
+            <svg viewBox="0 0 24 24" fill="var(--text)"><path d="M16.7 7.3c-1 1.2-2.6 2.1-4.2 1.9-.2-1.6.6-3.3 1.6-4.4C15 3.6 16.8 2.7 18.2 2.6c.2 1.7-.5 3.4-1.5 4.7zM18.1 9.5c-2.3-.1-4.3 1.3-5.4 1.3-1.1 0-2.8-1.2-4.6-1.2-2.4 0-4.6 1.4-5.8 3.5-2.5 4.3-.6 10.7 1.8 14.2 1.2 1.7 2.6 3.6 4.4 3.6 1.8-.1 2.4-1.1 4.5-1.1 2.1 0 2.7 1.1 4.5 1 1.8 0 3-1.7 4.2-3.4 1.3-1.9 1.8-3.8 1.8-3.9-.1 0-3.5-1.3-3.5-5.2 0-3.2 2.7-4.8 2.8-4.9-1.6-2.3-4-2.5-4.7-2.9z"/></svg>
+            Apple
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 2 — INTRO
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-intro">
+    <div style="height:16px;flex-shrink:0;"></div>
+    <div class="screen-content" style="align-items:center;text-align:center;justify-content:space-between;">
+      <div>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:6px;">A few steps to get started</p>
+        <h2 style="font-size:22px;font-weight:600;color:var(--white);line-height:1.4;">Define your trail runner<br>& training profile</h2>
+      </div>
+      <div class="intro-art">
+        <svg class="intro-circles" viewBox="0 0 280 280">
+          <circle cx="140" cy="140" r="60"/>
+          <circle cx="140" cy="140" r="90"/>
+          <circle cx="140" cy="140" r="120"/>
+          <circle cx="140" cy="140" r="50" stroke="rgba(232,255,71,0.15)"/>
+        </svg>
+        <div class="mountain-icon">🏔️</div>
+      </div>
+      <div style="width:100%;">
+        <button class="btn-primary" onclick="goTo('s-connect')">Start</button>
+      </div>
+    </div>
+    <div style="height:40px;flex-shrink:0;"></div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 3 — CONNECT APPS
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-connect">
+    <button class="back-btn" onclick="goTo('s-intro')">
+      <svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="progress-bar"><div class="progress-fill" style="width:10%"></div></div>
+    <div class="screen-content" style="padding-top:24px;">
+      <p class="label">Training data</p>
+      <h2 class="question">Import your training data to improve race accuracy</h2>
+      <div class="app-grid">
+        <div class="app-card" onclick="toggleCard(this)">
+          <div class="app-icon" style="background:#FC4C02;">🏃</div>
+          <span>Strava</span>
+        </div>
+        <div class="app-card" onclick="toggleCard(this)">
+          <div class="app-icon" style="background:#000;">🎽</div>
+          <span>Nike Run</span>
+        </div>
+        <div class="app-card" onclick="toggleCard(this)">
+          <div class="app-icon" style="background:#1F8FE4;">⌚</div>
+          <span>Garmin</span>
+        </div>
+        <div class="app-card" onclick="toggleCard(this)">
+          <div class="app-icon" style="background:#E63946;">🦵</div>
+          <span>Kiprun</span>
+        </div>
+      </div>
+      <button class="btn-secondary" onclick="goTo('s-hours')" style="margin-top:auto;">Continue without data</button>
+    </div>
+    <div class="bottom-safe">
+      <button class="btn-primary" onclick="goTo('s-hours')">Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 4 — WEEKLY HOURS
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-hours">
+    <button class="back-btn" onclick="goTo('s-connect')">
+      <svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="progress-bar"><div class="progress-fill" style="width:25%"></div></div>
+    <div class="screen-content" style="padding-top:24px;">
+      <p class="label">Availability</p>
+      <h2 class="question">How much time do you have available to train each week?</h2>
+      <div class="picker-row">
+        <div class="picker">
+          <button class="picker-arrow" onclick="adjustPicker('weekly-h',1)">▲</button>
+          <div class="picker-val" id="weekly-h">14</div>
+          <div class="picker-unit">hours</div>
+          <button class="picker-arrow" onclick="adjustPicker('weekly-h',-1)">▼</button>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-safe">
+      <button class="btn-primary" onclick="goTo('s-session')">Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 5 — LONGEST SESSION
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-session">
+    <button class="back-btn" onclick="goTo('s-hours')">
+      <svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="progress-bar"><div class="progress-fill" style="width:37%"></div></div>
+    <div class="screen-content" style="padding-top:24px;">
+      <p class="label">Session length</p>
+      <h2 class="question">What is the longest training session you can realistically complete?</h2>
+      <div class="picker-row">
+        <div class="picker">
+          <button class="picker-arrow" onclick="adjustPicker('session-h',1)">▲</button>
+          <div class="picker-val" id="session-h">3</div>
+          <div class="picker-unit">hours</div>
+          <button class="picker-arrow" onclick="adjustPicker('session-h',-1)">▼</button>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-safe">
+      <button class="btn-primary" onclick="goTo('s-terrain')">Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 6 — TERRAIN
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-terrain">
+    <button class="back-btn" onclick="goTo('s-session')">
+      <svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+    <div class="screen-content" style="padding-top:24px;">
+      <p class="label">Environment</p>
+      <h2 class="question sm">What running environments do you have access to?</h2>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="option-card" onclick="toggleOpt(this)"><div class="opt-label">Flat treadmill</div></div>
+        <div class="option-card" onclick="toggleOpt(this)"><div class="opt-label">Inclined treadmill</div></div>
+        <div class="option-card" onclick="toggleOpt(this)"><div class="opt-label">Flat running terrain</div></div>
+        <div class="option-card" onclick="toggleOpt(this)"><div class="opt-label">Gently sloped terrain <span style="color:var(--muted);font-size:12px;">(100m+)</span></div></div>
+        <div class="option-card selected" onclick="toggleOpt(this)"><div class="opt-label">Moderately hilly terrain <span style="color:var(--muted);font-size:12px;">(500m+)</span></div></div>
+        <div class="option-card selected" onclick="toggleOpt(this)"><div class="opt-label">Mountainous terrain <span style="color:var(--muted);font-size:12px;">(1000m+)</span></div></div>
+      </div>
+    </div>
+    <div class="bottom-safe">
+      <button class="btn-primary" onclick="goTo('s-racetype')">Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 7 — RACE TYPE
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-racetype">
+    <button class="back-btn" onclick="goTo('s-terrain')">
+      <svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="progress-bar"><div class="progress-fill" style="width:62%"></div></div>
+    <div class="screen-content" style="padding-top:24px;">
+      <p class="label">Race</p>
+      <h2 class="question">What type of race are you aiming for?</h2>
+      <div class="type-cards">
+        <div class="type-card selected" onclick="selectType(this)">
+          <div class="type-icon">🗺️</div>
+          <div class="type-label">Existing trail</div>
+        </div>
+        <div class="type-card" onclick="selectType(this)">
+          <div class="type-icon">✏️</div>
+          <div class="type-label">Custom one</div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-safe">
+      <button class="btn-primary" onclick="goTo('s-search')">Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 8 — RACE SEARCH
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-search">
+    <button class="back-btn" onclick="goTo('s-racetype')">
+      <svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="progress-bar"><div class="progress-fill" style="width:72%"></div></div>
+    <div class="screen-content" style="padding-top:24px;">
+      <p class="label">Race search</p>
+      <h2 class="question sm">What is the name of the race?</h2>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="race-search-input" placeholder="Search race..." value="Utm" oninput="filterRaces(this.value)">
+      </div>
+      <div id="race-results">
+        <div class="race-result selected" onclick="selectRace(this)" data-name="UTMB Official Trail">
+          <div class="race-badge">🏔</div>
+          <div>
+            <div class="race-name">UTMB Official Trail</div>
+            <div class="race-meta">176 km · Réserve naturelle des Contamines…</div>
+          </div>
+        </div>
+        <div class="race-result" onclick="selectRace(this)" data-name="UTMB Short Trail">
+          <div class="race-badge">⛰</div>
+          <div>
+            <div class="race-name">UTMB Short Trail</div>
+            <div class="race-meta">72 km · Réserve naturelle des Contamines…</div>
+          </div>
+        </div>
+        <div class="race-result" onclick="selectRace(this)" data-name="UTMB XL Trail">
+          <div class="race-badge">🗻</div>
+          <div>
+            <div class="race-name">UTMB XL Trail</div>
+            <div class="race-meta">176 km · Réserve naturelle des Contamines…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-safe">
+      <button class="btn-primary" onclick="goTo('s-date')">Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 9 — RACE DATE
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-date">
+    <button class="back-btn" onclick="goTo('s-search')">
+      <svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="progress-bar"><div class="progress-fill" style="width:82%"></div></div>
+    <div class="screen-content" style="padding-top:24px;">
+      <p class="label">Race date</p>
+      <h2 class="question sm">When do you plan to race it?</h2>
+      <div id="calendar-widget"></div>
+    </div>
+    <div class="bottom-safe">
+      <button class="btn-primary" onclick="goTo('s-objective')">Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 10 — TIME OBJECTIVE
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-objective">
+    <button class="back-btn" onclick="goTo('s-date')">
+      <svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="progress-bar"><div class="progress-fill" style="width:92%"></div></div>
+    <div class="screen-content" style="padding-top:24px;">
+      <p class="label">Goal time</p>
+      <h2 class="question">What time objective are you aiming for?</h2>
+      <div class="picker-row">
+        <div class="picker">
+          <button class="picker-arrow" onclick="adjustPicker('obj-h',1)">▲</button>
+          <div class="picker-val" id="obj-h">29</div>
+          <div class="picker-unit">hours</div>
+          <button class="picker-arrow" onclick="adjustPicker('obj-h',-1)">▼</button>
+        </div>
+        <div style="font-family:'Bebas Neue';font-size:72px;color:var(--border);line-height:1;">:</div>
+        <div class="picker">
+          <button class="picker-arrow" onclick="adjustPicker('obj-m',5)">▲</button>
+          <div class="picker-val" id="obj-m">32</div>
+          <div class="picker-unit">mins</div>
+          <button class="picker-arrow" onclick="adjustPicker('obj-m',-5)">▼</button>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-safe">
+      <button class="btn-primary" onclick="generatePlan()">Continue</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 11 — GENERATING
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-generating">
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <div class="loading-text">Generating a dedicated<br>training plan</div>
+      <p style="font-size:12px;color:var(--muted);text-align:center;">Analysing your profile<br>& race objectives…</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       SCREEN 12 — TRAINING PLAN
+  ══════════════════════════════════ -->
+  <div class="screen" id="s-plan">
+    <div style="height:16px;flex-shrink:0;"></div>
+    <div class="screen-content" style="padding-top:12px;">
+      <p class="label">Your Race</p>
+      <div class="race-header-card">
+        <div class="race-header-info">
+          <div class="race-title">YOUR RACE</div>
+          <div class="race-name-lg">UTMB OFFICIAL TRAIL</div>
+          <div class="race-stats">176 km · 5'01 /km · 28h32</div>
+        </div>
+        <div class="score-badge">D·73</div>
+      </div>
+
+      <div class="week-nav">
+        <button class="week-nav-btn">‹</button>
+        <div style="text-align:center;">
+          <div class="wk">Week 1/12</div>
+          <div class="wk-sub">3 runs</div>
+        </div>
+        <button class="week-nav-btn">›</button>
+      </div>
+
+      <div class="bar-chart">
+        <div class="bar active" style="height:60%"></div>
+        <div class="bar active" style="height:80%"></div>
+        <div class="bar" style="height:40%"></div>
+        <div class="bar active" style="height:100%"></div>
+        <div class="bar" style="height:30%"></div>
+        <div class="bar" style="height:20%"></div>
+        <div class="bar" style="height:50%"></div>
+      </div>
+
+      <div class="workout-card">
+        <div>
+          <div class="workout-type highlight">VO2 max <span style="font-size:11px;color:var(--muted);font-family:'DM Sans';">Start running !</span></div>
+          <div class="workout-meta">
+            <span><strong>50 mn</strong>Time</span>
+            <span><strong>7 km</strong>Distance</span>
+            <span><strong>500 m</strong>Elevation</span>
+          </div>
+        </div>
+        <div class="chevron-r">›</div>
+      </div>
+
+      <div class="workout-card">
+        <div>
+          <div class="workout-type">Endurance (cumulative volume)</div>
+          <div class="workout-meta">
+            <span><strong>50 mn</strong>Time</span>
+            <span><strong>7 km</strong>Distance</span>
+            <span><strong>500 m</strong>Elevation</span>
+          </div>
+        </div>
+        <div class="chevron-r">›</div>
+      </div>
+
+      <div class="workout-card">
+        <div>
+          <div class="workout-type">Aerobic threshold</div>
+          <div class="workout-meta">
+            <span><strong>50 mn</strong>Time</span>
+            <span><strong>7 km</strong>Distance</span>
+            <span><strong>500 m</strong>Elevation</span>
+          </div>
+        </div>
+        <div class="chevron-r">›</div>
+      </div>
+
+      <p class="label" style="margin-top:8px;">Weekly workload</p>
+      <div class="workload-grid">
+        <div class="workload-cell">
+          <div class="wl-label"><div class="dot red"></div> Distance</div>
+          <div class="wl-val">0 km</div>
+        </div>
+        <div class="workload-cell">
+          <div class="wl-label"><div class="dot yellow"></div> Time</div>
+          <div class="wl-val">0</div>
+        </div>
+        <div class="workload-cell">
+          <div class="wl-label"><div class="dot red"></div> Elevation</div>
+          <div class="wl-val">0 m</div>
+        </div>
+        <div class="workload-cell">
+          <div class="wl-label"><div class="dot yellow"></div> Calories</div>
+          <div class="wl-val">0 Kcal</div>
+        </div>
+      </div>
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+</div><!-- /phone-shell -->
+
+<script>
+  // ─── NAVIGATION ───
+  let currentScreen = 's-login';
+
+  function goTo(id) {
+    const curr = document.getElementById(currentScreen);
+    const next = document.getElementById(id);
+    if (!next || id === currentScreen) return;
+    curr.classList.add('exit');
+    setTimeout(() => {
+      curr.classList.remove('active', 'exit');
+      next.classList.add('active');
+      currentScreen = id;
+    }, 300);
+  }
+
+  // ─── PICKERS ───
+  const pickerLimits = {
+    'weekly-h': [1, 40],
+    'session-h': [1, 12],
+    'obj-h': [1, 60],
+    'obj-m': [0, 55],
+  };
+
+  function adjustPicker(id, delta) {
+    const el = document.getElementById(id);
+    let v = parseInt(el.textContent);
+    const [min, max] = pickerLimits[id] || [0, 999];
+    v = Math.min(max, Math.max(min, v + delta));
+    el.textContent = id === 'obj-m' ? String(v).padStart(2,'0') : v;
+  }
+
+  // ─── TOGGLES ───
+  function toggleCard(el) { el.classList.toggle('selected'); }
+  function toggleOpt(el) { el.classList.toggle('selected'); }
+
+  function selectType(el) {
+    el.closest('.type-cards').querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function selectRace(el) {
+    document.querySelectorAll('.race-result').forEach(r => r.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function filterRaces(val) {
+    document.querySelectorAll('.race-result').forEach(r => {
+      const name = r.dataset.name.toLowerCase();
+      r.style.display = name.includes(val.toLowerCase()) ? '' : 'none';
+    });
+  }
+
+  // ─── CALENDAR ───
+  let calYear = 2026, calMonth = 8; // September 2026
+  let selectedDay = 14;
+
+  function buildCalendar() {
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+    const offset = (firstDay === 0 ? 6 : firstDay - 1); // Mon-first offset
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+    let html = `
+      <div class="calendar-header">
+        <button class="cal-arrow" onclick="changeMonth(-1)">‹</button>
+        <div class="cal-month">${months[calMonth]} ${calYear}</div>
+        <button class="cal-arrow" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="cal-days-header">
+        ${days.map(d => `<span>${d}</span>`).join('')}
+      </div>
+      <div class="cal-grid">
+    `;
+    for (let i = 0; i < offset; i++) html += `<div class="cal-day empty"></div>`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const sel = d === selectedDay ? 'selected' : '';
+      html += `<div class="cal-day ${sel}" onclick="selectDay(${d})">${d}</div>`;
+    }
+    html += `</div>`;
+    document.getElementById('calendar-widget').innerHTML = html;
+  }
+
+  function changeMonth(delta) {
+    calMonth += delta;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    selectedDay = null;
+    buildCalendar();
+  }
+
+  function selectDay(d) {
+    selectedDay = d;
+    buildCalendar();
+  }
+
+  // ─── GENERATE PLAN ───
+  function generatePlan() {
+    goTo('s-generating');
+    setTimeout(() => goTo('s-plan'), 3000);
+  }
+
+  // Init calendar on load
+  buildCalendar();
+</script>
+</body>
+</html>
