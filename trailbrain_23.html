@@ -1,0 +1,2302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Trail App</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a; --surface: #111; --surface2: #181818; --surface3: #202020;
+  --border: #2a2a2a; --border2: #333;
+  --text: #f0f0f0; --muted: #606060; --muted2: #404040;
+  --accent: #FC1B38; --accent2: #c4001f; --green: #3ddc84;
+  --radius: 14px;
+}
+* { -webkit-tap-highlight-color: transparent; }
+html, body {
+  width: 100%; height: 100%;
+  margin: 0; padding: 0;
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  overflow: hidden;
+}
+.phone-shell {
+  width: 100%; height: 100%;
+  max-width: 430px; /* cap on tablets/desktop */
+  margin: 0 auto;
+  background: var(--bg);
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+}
+/* Desktop: show as phone shell */
+@media (min-width: 600px) {
+  body {
+    display: flex; align-items: center; justify-content: center;
+    background: #050505;
+    min-height: 100vh;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      repeating-radial-gradient(ellipse 120% 60% at 50% 50%, transparent 0%, transparent 8%, rgba(252,27,56,0.012) 8.5%, transparent 9%);
+    pointer-events: none;
+  }
+  .phone-shell {
+    width: 390px; height: 844px;
+    border-radius: 50px;
+    box-shadow: 0 0 0 1px #222, 0 0 0 10px #0f0f0f, 0 0 0 11px #1a1a1a, 0 60px 120px rgba(0,0,0,0.9);
+  }
+}
+
+/* STATUS BAR */
+.status-bar {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 44px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px 0;
+  font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text);
+  z-index: 100;
+}
+
+/* SCREENS */
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  padding-top: 44px;
+  padding-top: max(44px, env(safe-area-inset-top));
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.28s ease, transform 0.28s ease;
+  transform: translateX(28px);
+  z-index: 1; overflow: hidden;
+}
+.screen.active { opacity: 1; pointer-events: all; transform: translateX(0) scale(1); }
+.screen.exit { opacity: 0; transform: translateX(-28px); }
+/* Tab transitions — quick fade/scale, no slide */
+.screen.tab-out { opacity: 0; transform: none !important; transition: opacity 0.15s ease; }
+.screen.tab-in  { opacity: 0; transform: none !important; }
+.screen.active.tab-in { opacity: 1; transform: none !important; transition: opacity 0.15s ease; }
+
+.scroll-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.scroll-body::-webkit-scrollbar { display: none; }
+
+/* PROGRESS BAR */
+.prog-wrap { padding: 14px 24px 0; flex-shrink: 0; }
+.prog-track { height: 2px; background: var(--border); border-radius: 2px; }
+.prog-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s ease; }
+
+/* BACK BTN */
+.back-btn {
+  width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 50%;
+  background: transparent; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; margin: 14px 24px 0; flex-shrink: 0; transition: border-color 0.2s;
+}
+.back-btn:hover { border-color: var(--accent); }
+.back-btn svg { width: 14px; height: 14px; stroke: var(--text); fill: none; }
+
+/* SHARED */
+.screen-pad { padding: 0 24px; }
+.label-sm { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; margin-top: 20px; }
+h2.q { font-size: 22px; font-weight: 600; color: #fff; line-height: 1.3; margin: 18px 0 24px; }
+h2.q.sm { font-size: 19px; }
+
+/* INPUTS */
+.inp-group { margin-bottom: 14px; }
+.inp-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+input[type=text], input[type=email], input[type=password] {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 13px 15px;
+  color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none;
+  transition: border-color 0.2s;
+}
+input:focus { border-color: var(--accent); }
+::placeholder { color: var(--muted); }
+
+/* BUTTONS */
+.btn-p {
+  width: 100%; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius); padding: 15px;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+}
+.btn-p:hover { opacity: 0.9; }
+.btn-p:active { transform: scale(0.98); }
+.btn-s {
+  width: 100%; background: transparent; color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 14px;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+  cursor: pointer; margin-top: 10px; transition: border-color 0.2s;
+}
+.btn-s:hover { border-color: var(--accent); }
+.bottom-safe { padding: 0 24px 40px; flex-shrink: 0; }
+
+.or-div {
+  text-align: center; color: var(--muted); font-size: 13px; margin: 14px 0; position: relative;
+}
+.or-div::before, .or-div::after {
+  content: ''; position: absolute; top: 50%; width: 35%; height: 1px; background: var(--border);
+}
+.or-div::before { left: 0; } .or-div::after { right: 0; }
+.social-row { display: flex; gap: 10px; }
+.soc-btn {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px; color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-family: 'DM Sans', sans-serif; transition: border-color 0.2s;
+}
+.soc-btn:hover { border-color: var(--accent); }
+
+/* CHIPS / OPTIONS */
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip {
+  padding: 11px 18px; border: 1px solid var(--border); border-radius: 100px;
+  font-size: 14px; color: var(--text); cursor: pointer; transition: all 0.2s;
+  background: transparent; font-family: 'DM Sans', sans-serif;
+}
+.chip.on, .chip:hover { border-color: var(--accent); background: rgba(252,27,56,0.12); color: #fff; }
+.opt-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 15px 18px; margin-bottom: 9px; cursor: pointer; transition: all 0.2s;
+  background: var(--surface);
+}
+.opt-card:hover, .opt-card.on { border-color: var(--accent); background: rgba(252,27,56,0.06); }
+.opt-card .ol { font-size: 15px; font-weight: 500; color: var(--text); }
+
+/* APP GRID */
+.app-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 14px; }
+.app-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 14px; display: flex; flex-direction: column; align-items: center; gap: 9px;
+  cursor: pointer; transition: all 0.2s; background: var(--surface);
+}
+.app-card:hover, .app-card.on { border-color: var(--accent); background: rgba(252,27,56,0.06); }
+.app-card span { font-size: 13px; font-weight: 500; color: var(--text); }
+.app-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+
+/* PICKER */
+.picker-row { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 18px 0; }
+.pkr { display: flex; flex-direction: column; align-items: center; }
+.pkr-val { font-family: 'Bebas Neue', sans-serif; font-size: 72px; color: #fff; line-height: 1; }
+.pkr-unit { font-size: 12px; color: var(--muted); }
+.pkr-arrow { background: none; border: none; cursor: pointer; color: var(--text); font-size: 22px; padding: 8px; }
+.pkr-arrow:hover { color: var(--accent); }
+
+/* TYPE CARDS */
+.type-cards { display: flex; gap: 11px; }
+.type-card {
+  flex: 1; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px 14px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface);
+}
+.type-card:hover, .type-card.on { border-color: var(--accent); background: rgba(252,27,56,0.08); }
+.type-card .ti { font-size: 28px; margin-bottom: 7px; }
+.type-card .tl { font-size: 14px; font-weight: 600; color: var(--text); }
+
+/* SEARCH */
+.search-bar {
+  display: flex; align-items: center; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 11px 14px; gap: 9px; margin-bottom: 11px;
+}
+.search-bar input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 15px; font-family: 'DM Sans', sans-serif; }
+.race-result {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 15px; border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 8px; cursor: pointer;
+  background: var(--surface); transition: all 0.2s;
+}
+.race-result:hover, .race-result.on { border-color: var(--accent); background: rgba(252,27,56,0.06); }
+.race-badge { width: 42px; height: 42px; background: linear-gradient(135deg, var(--accent2), #ff4757); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.race-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.race-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* CALENDAR */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-month { font-size: 15px; font-weight: 600; color: #fff; }
+.cal-arrow-btn { background: none; border: none; color: var(--text); cursor: pointer; font-size: 18px; padding: 3px 8px; }
+.cal-arrow-btn:hover { color: var(--accent); }
+.cal-dh { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; margin-bottom: 6px; }
+.cal-dh span { font-size: 10px; color: var(--muted); padding: 3px 0; }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+.cal-day {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--text); border-radius: 50%; cursor: pointer; transition: all 0.2s;
+  -webkit-user-select: none; user-select: none;
+}
+.cal-day:hover:not(.empty) { background: var(--border); }
+.cal-day.sel { background: var(--accent); color: #fff; font-weight: 700; }
+.cal-day.empty { pointer-events: none; }
+
+/* LOADING */
+.loading-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+.spinner { width: 46px; height: 46px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TRAINING PLAN OUTPUT */
+.race-hdr {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 15px 17px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
+}
+.race-hdr-info .rt { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.race-hdr-info .rn { font-size: 16px; font-weight: 700; color: #fff; margin: 2px 0; }
+.race-hdr-info .rs { font-size: 11px; color: var(--muted); }
+.score-badge { background: var(--accent2); color: #fff; border-radius: 10px; padding: 8px 11px; font-family: 'Bebas Neue', sans-serif; font-size: 26px; }
+.week-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.wk-label { font-size: 15px; font-weight: 600; color: #fff; }
+.wk-sub { font-size: 12px; color: var(--muted); }
+.wk-btn { background: none; border: none; color: var(--text); cursor: pointer; font-size: 18px; padding: 3px 7px; }
+.bar-chart { display: flex; gap: 4px; align-items: flex-end; height: 34px; margin-bottom: 18px; }
+.bar { flex: 1; background: var(--border); border-radius: 3px; }
+.bar.act { background: var(--accent); }
+.wo-card {
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 15px;
+  margin-bottom: 9px; background: var(--surface);
+  display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.wo-card:hover { border-color: var(--accent); }
+.wo-type { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 5px; }
+.wo-type.hl { color: var(--accent); }
+.wo-meta { display: flex; gap: 14px; }
+.wo-meta span { font-size: 10px; color: var(--muted); }
+.wo-meta span strong { display: block; font-size: 11px; color: var(--text); font-weight: 500; }
+.chev { color: var(--muted2); font-size: 15px; }
+.wl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.wl-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; }
+.wl-cell .wll { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 5px; }
+.wl-cell .wlv { font-size: 20px; font-weight: 600; color: #fff; margin-top: 4px; }
+.dot-r { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); }
+.dot-y { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+/* TAB BAR */
+.tab-bar {
+  height: 82px; flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border);
+  display: flex; align-items: flex-start; padding-top: 10px; position: relative; z-index: 50;
+}
+.tab-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; padding: 4px 0; color: var(--muted); font-size: 10px; letter-spacing: 0.5px; transition: color 0.2s;
+}
+.tab-item.act { color: var(--accent); }
+.tab-icon { font-size: 20px; line-height: 1; }
+
+/* PROFILE */
+.profile-header { padding: 18px 20px 0; display: flex; align-items: center; gap: 15px; }
+.avatar {
+  width: 62px; height: 62px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, #a8cc00 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #0a0a0a; flex-shrink: 0; position: relative;
+}
+.av-edit {
+  position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 9px; cursor: pointer;
+}
+.pf-name { font-size: 19px; font-weight: 600; color: var(--text); }
+.pf-email { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.pf-since { font-size: 11px; color: var(--muted2); margin-top: 3px; }
+
+.completion-card {
+  margin: 14px 20px 0; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 15px;
+}
+.comp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+.comp-lbl { font-size: 12px; color: var(--muted); }
+.comp-pct { font-size: 13px; font-weight: 600; color: var(--accent); }
+.comp-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.comp-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.6s ease; }
+.comp-hint { font-size: 11px; color: var(--muted); margin-top: 7px; }
+
+.sec-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding: 18px 20px 7px; }
+.crit-group { margin: 0 20px 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.crit-row {
+  display: flex; align-items: center; padding: 13px 15px;
+  border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; gap: 11px;
+}
+.crit-row:last-child { border-bottom: none; }
+.crit-row:hover { background: var(--surface2); }
+.cr-icon { font-size: 17px; width: 26px; text-align: center; flex-shrink: 0; }
+.cr-body { flex: 1; min-width: 0; }
+.cr-lbl { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.cr-val { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cr-val.empty { color: var(--muted2); font-style: italic; font-weight: 400; }
+.cr-status { flex-shrink: 0; display: flex; align-items: center; gap: 5px; }
+.dot-f { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.dot-e { width: 7px; height: 7px; border-radius: 50%; background: var(--muted2); }
+.src-badge {
+  font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 2px 6px;
+  border-radius: 4px; background: rgba(252,27,56,0.1); color: var(--accent);
+  border: 1px solid rgba(252,27,56,0.2); flex-shrink: 0;
+}
+.src-badge.miss { background: rgba(255,255,255,0.04); color: var(--muted); border-color: var(--border); }
+.chev-r { color: var(--muted2); font-size: 14px; }
+.danger-row { display: flex; align-items: center; padding: 13px 15px; gap: 11px; cursor: pointer; transition: background 0.15s; }
+.danger-row:hover { background: rgba(255,60,60,0.05); }
+
+/* EDIT SHEET */
+.sheet-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px); z-index: 200;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.sheet-overlay.open { opacity: 1; pointer-events: all; }
+.edit-sheet {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-top: 1px solid var(--border2);
+  border-radius: 22px 22px 0 0; padding: 0 0 38px;
+  transform: translateY(100%);
+  transition: transform 0.33s cubic-bezier(0.32,0.72,0,1);
+  max-height: 72%; overflow-y: auto;
+}
+.edit-sheet::-webkit-scrollbar { display: none; }
+.sheet-overlay.open .edit-sheet { transform: translateY(0); }
+.sh-handle { width: 34px; height: 4px; background: var(--border2); border-radius: 2px; margin: 11px auto 0; }
+.sh-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 2px; }
+.sh-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.sh-close { width: 27px; height: 27px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); font-size: 13px; }
+.sh-body { padding: 10px 20px 0; }
+.sh-lbl { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 7px; margin-top: 2px; }
+.sh-chip { padding: 9px 15px; border: 1px solid var(--border); border-radius: 100px; font-size: 13px; color: var(--text); cursor: pointer; transition: all 0.2s; background: transparent; font-family: 'DM Sans', sans-serif; }
+.sh-chip.on { border-color: var(--accent); background: rgba(252,27,56,0.1); color: var(--accent); }
+.sh-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 11px; }
+.sh-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; margin-bottom: 9px; }
+.sh-input:focus { border-color: var(--accent); }
+.sh-save { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 14px; }
+.sh-save:hover { opacity: 0.9; }
+.sh-search { display: flex; align-items: center; background: var(--surface3); border: 1px solid var(--border); border-radius: 10px; padding: 9px 13px; gap: 7px; margin-bottom: 9px; }
+.sh-search input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; }
+.sh-race-opt { display: flex; align-items: center; gap: 11px; padding: 11px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+.sh-race-opt:last-child { border: none; }
+.sh-race-opt:hover .sh-rn { color: var(--accent); }
+.sh-rbadge { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, var(--accent2), #ff4757); display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.sh-rn { font-size: 13px; font-weight: 600; color: var(--text); }
+.sh-rm { font-size: 11px; color: var(--muted); }
+.sh-pkr-row { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 11px 0; }
+.sh-pkr { display: flex; flex-direction: column; align-items: center; }
+.sh-pv { font-family: 'Bebas Neue', sans-serif; font-size: 58px; color: #fff; line-height: 1; }
+.sh-pu { font-size: 11px; color: var(--muted); }
+.sh-pa { background: none; border: none; cursor: pointer; color: var(--text); font-size: 20px; padding: 7px; }
+.sh-pa:hover { color: var(--accent); }
+.mini-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mini-cal-month { font-size: 13px; font-weight: 600; color: var(--text); }
+.mini-cal-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 2px 5px; }
+.mini-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+.mini-cal-dh { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 5px; }
+.mini-cal-dh span { font-size: 10px; color: var(--muted); text-align: center; }
+.mini-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text); border-radius: 50%; cursor: pointer; }
+.mini-day:hover:not(.mcal-empty) { background: var(--border); }
+.mini-day.mcal-sel { background:var(--accent);color:#fff; font-weight: 700; }
+.mini-day.mcal-empty { pointer-events: none; }
+
+/* BRAND */
+.brand-sub { font-size: 11px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 3px; }
+h1.brand { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 2px; color: #fff; line-height: 1; }
+
+/* INTRO ART */
+.intro-art { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+.intro-circles { position: absolute; width: 280px; height: 280px; }
+.intro-circles circle { fill: none; stroke: rgba(252,27,56,0.08); stroke-width: 1; }
+
+/* ANIMATIONS */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.screen.active .scroll-body > *, .screen.active > .screen-pad > *, .screen.active > .bottom-safe {
+  animation: fadeUp 0.38s ease both;
+}
+</style>
+</head>
+<body>
+<div class="phone-shell">
+
+  <div class="status-bar">
+    <span id="clock">17:18</span>
+    <div style="display:flex;gap:5px;align-items:center;font-size:11px;">
+      <span>●●●</span><span>WiFi</span><span>🔋</span>
+    </div>
+  </div>
+
+  <!-- ══ S1: LOGIN ══ -->
+  <div class="screen active" id="s-login">
+    <div class="scroll-body screen-pad" style="display:flex;flex-direction:column;justify-content:space-between;padding-top:38px;padding-bottom:0;">
+      <div>
+        <div class="brand-sub">SALOMON / ULTRA</div>
+        <h1 class="brand">TRAIL<br>APP</h1>
+        <p style="font-size:13px;color:var(--muted);margin-top:7px;">Train with purpose. Race with confidence.</p>
+      </div>
+      <div style="padding-bottom:6px;">
+        <div class="inp-group"><label>Email</label><input type="email" placeholder="JohnSmith@gmail.com" id="login-email" value="JohnSmith@gmail.com"></div>
+        <div class="inp-group"><label>Password</label><input type="password" value="••••••••••" id="login-pw"></div>
+        <button class="btn-p" onclick="goTo('s-intro')">Continue</button>
+        <div class="or-div">or continue with</div>
+        <div class="social-row">
+          <button class="soc-btn" onclick="goTo('s-intro')">
+            <svg width="17" height="17" viewBox="0 0 24 24"><path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5c-.2 1.2-1 2.3-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285F4"/><path d="M12 22c2.7 0 5-.9 6.7-2.4l-3.2-2.5c-.9.6-2 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.9v2.6C4.6 19.7 8 22 12 22z" fill="#34A853"/><path d="M6.2 13.8c-.2-.6-.3-1.2-.3-1.8s.1-1.2.3-1.8V7.6H2.9C2.3 8.8 2 10.4 2 12s.3 3.2.9 4.4l3.3-2.6z" fill="#FBBC05"/><path d="M12 5.7c1.5 0 2.8.5 3.9 1.5l2.9-2.9C17 2.8 14.7 2 12 2 8 2 4.6 4.3 2.9 7.6l3.3 2.6C7 7.5 9.3 5.7 12 5.7z" fill="#EA4335"/></svg>
+            Google
+          </button>
+          <button class="soc-btn" onclick="goTo('s-intro')">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="var(--text)"><path d="M16.7 7.3c-1 1.2-2.6 2.1-4.2 1.9-.2-1.6.6-3.3 1.6-4.4C15 3.6 16.8 2.7 18.2 2.6c.2 1.7-.5 3.4-1.5 4.7zM18.1 9.5c-2.3-.1-4.3 1.3-5.4 1.3-1.1 0-2.8-1.2-4.6-1.2-2.4 0-4.6 1.4-5.8 3.5-2.5 4.3-.6 10.7 1.8 14.2 1.2 1.7 2.6 3.6 4.4 3.6 1.8-.1 2.4-1.1 4.5-1.1 2.1 0 2.7 1.1 4.5 1 1.8 0 3-1.7 4.2-3.4 1.3-1.9 1.8-3.8 1.8-3.9-.1 0-3.5-1.3-3.5-5.2 0-3.2 2.7-4.8 2.8-4.9-1.6-2.3-4-2.5-4.7-2.9z"/></svg>
+            Apple
+          </button>
+        </div>
+      </div>
+    </div>
+    <div style="height:40px;flex-shrink:0;"></div>
+  </div>
+
+
+
+  <!-- ══ S2: INTRO ══ -->
+  <div class="screen" id="s-intro">
+    <div style="height:14px;flex-shrink:0;"></div>
+    <div class="scroll-body screen-pad" style="display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:space-between;padding-top:4px;">
+      <div>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:5px;">A few steps to get started</p>
+        <h2 style="font-size:21px;font-weight:600;color:#fff;line-height:1.4;">Define your trail runner<br>& training profile</h2>
+      </div>
+      <div class="intro-art">
+        <svg class="intro-circles" viewBox="0 0 280 280"><circle cx="140" cy="140" r="60"/><circle cx="140" cy="140" r="90"/><circle cx="140" cy="140" r="120"/><circle cx="140" cy="140" r="50" stroke="rgba(252,27,56,0.15)"/></svg>
+        <div style="font-size:62px;position:relative;z-index:1;">🏔️</div>
+      </div>
+      <div style="width:100%;padding-bottom:8px;">
+        <button class="btn-p" onclick="goTo('s-connect')">Start</button>
+      </div>
+    </div>
+    <div style="height:40px;flex-shrink:0;"></div>
+  </div>
+
+  <!-- ══ S3: CONNECT APPS ══ -->
+  <div class="screen" id="s-connect">
+    <button class="back-btn" onclick="goTo('s-intro')"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:10%"></div></div></div>
+    <div class="scroll-body screen-pad" style="padding-top:18px;">
+      <p class="label-sm" style="margin-top:0;">Training data</p>
+      <h2 class="q sm">Import your training data to improve race accuracy</h2>
+      <div class="app-grid">
+        <div class="app-card" id="app-strava" onclick="toggleApp(this,'Strava')"><div class="app-icon" style="background:#FC4C02;">🏃</div><span>Strava</span></div>
+        <div class="app-card" id="app-nike" onclick="toggleApp(this,'Nike Run')"><div class="app-icon" style="background:#000;">🎽</div><span>Nike Run</span></div>
+        <div class="app-card on" id="app-garmin" onclick="toggleApp(this,'Garmin')"><div class="app-icon" style="background:#1F8FE4;">⌚</div><span>Garmin</span></div>
+        <div class="app-card" id="app-kiprun" onclick="toggleApp(this,'Kiprun')"><div class="app-icon" style="background:#E63946;">🦵</div><span>Kiprun</span></div>
+      </div>
+      <button class="btn-s" onclick="saveApps();goTo('s-hours')">Continue without data</button>
+    </div>
+    <div class="bottom-safe"><button class="btn-p" onclick="saveApps();goTo('s-hours')">Continue</button></div>
+  </div>
+
+  <!-- ══ S4: WEEKLY HOURS ══ -->
+  <div class="screen" id="s-hours">
+    <button class="back-btn" onclick="goTo('s-connect')"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" fill="none"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:25%"></div></div></div>
+    <div class="scroll-body screen-pad" style="padding-top:18px;">
+      <p class="label-sm" style="margin-top:0;">Availability</p>
+      <h2 class="q">How much time do you have available to train each week?</h2>
+      <div class="picker-row">
+        <div class="pkr">
+          <button class="pkr-arrow" onclick="adj('wh',1,1,40)">▲</button>
+          <div class="pkr-val" id="wh">14</div>
+          <div class="pkr-unit">hours</div>
+          <button class="pkr-arrow" onclick="adj('wh',-1,1,40)">▼</button>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-safe"><button class="btn-p" onclick="saveWeeklyHours()">Continue</button></div>
+  </div>
+
+  <!-- ══ S5: SESSION LENGTH ══ -->
+  <div class="screen" id="s-session">
+    <button class="back-btn" onclick="goTo('s-hours')"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" fill="none"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:38%"></div></div></div>
+    <div class="scroll-body screen-pad" style="padding-top:18px;">
+      <p class="label-sm" style="margin-top:0;">Session length</p>
+      <h2 class="q">What is the longest training session you can realistically complete?</h2>
+      <div class="picker-row">
+        <div class="pkr">
+          <button class="pkr-arrow" onclick="adj('sl',1,1,12)">▲</button>
+          <div class="pkr-val" id="sl">3</div>
+          <div class="pkr-unit">hours</div>
+          <button class="pkr-arrow" onclick="adj('sl',-1,1,12)">▼</button>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-safe"><button class="btn-p" onclick="saveSessionLength()">Continue</button></div>
+  </div>
+
+  <!-- ══ S6: TERRAIN ══ -->
+  <div class="screen" id="s-terrain">
+    <button class="back-btn" onclick="goTo('s-session')"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" fill="none"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:52%"></div></div></div>
+    <div class="scroll-body screen-pad" style="padding-top:18px;">
+      <p class="label-sm" style="margin-top:0;">Environment</p>
+      <h2 class="q sm">What running environments do you have access to?</h2>
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <div class="opt-card" onclick="toggleTerrain(this,'Flat treadmill')"><div class="ol">Flat treadmill</div></div>
+        <div class="opt-card" onclick="toggleTerrain(this,'Inclined treadmill')"><div class="ol">Inclined treadmill</div></div>
+        <div class="opt-card" onclick="toggleTerrain(this,'Flat running terrain')"><div class="ol">Flat running terrain</div></div>
+        <div class="opt-card" onclick="toggleTerrain(this,'Gently sloped (100m+)')"><div class="ol">Gently sloped <span style="color:var(--muted);font-size:12px;">(100m+)</span></div></div>
+        <div class="opt-card on" onclick="toggleTerrain(this,'Moderately hilly (500m+)')"><div class="ol">Moderately hilly <span style="color:var(--muted);font-size:12px;">(500m+)</span></div></div>
+        <div class="opt-card on" onclick="toggleTerrain(this,'Mountainous (1000m+)')"><div class="ol">Mountainous <span style="color:var(--muted);font-size:12px;">(1000m+)</span></div></div>
+      </div>
+    </div>
+    <div class="bottom-safe"><button class="btn-p" onclick="goTo('s-racetype')">Continue</button></div>
+  </div>
+
+  <!-- ══ S7: RACE TYPE ══ -->
+  <div class="screen" id="s-racetype">
+    <button class="back-btn" onclick="goTo('s-terrain')"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" fill="none"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:64%"></div></div></div>
+    <div class="scroll-body screen-pad" style="padding-top:18px;">
+      <p class="label-sm" style="margin-top:0;">Race</p>
+      <h2 class="q">What type of race are you aiming for?</h2>
+      <div class="type-cards">
+        <div class="type-card on" id="rt-existing" onclick="pickRaceType('Existing trail','rt-existing','rt-custom')"><div class="ti">🗺️</div><div class="tl">Existing trail</div></div>
+        <div class="type-card" id="rt-custom" onclick="pickRaceType('Custom one','rt-custom','rt-existing')"><div class="ti">✏️</div><div class="tl">Custom one</div></div>
+      </div>
+    </div>
+    <div class="bottom-safe"><button class="btn-p" onclick="goTo('s-search')">Continue</button></div>
+  </div>
+
+  <!-- ══ S8: RACE SEARCH ══ -->
+  <div class="screen" id="s-search">
+    <button class="back-btn" onclick="goTo('s-racetype')"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" fill="none"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:74%"></div></div></div>
+    <div class="scroll-body screen-pad" style="padding-top:18px;">
+      <p class="label-sm" style="margin-top:0;">Race search</p>
+      <h2 class="q sm">What is the name of the race?</h2>
+      <div class="search-bar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="race-search" placeholder="Search race…" value="Utm" oninput="filterRaces(this.value)">
+      </div>
+      <div id="race-list">
+        <div class="race-result on" onclick="pickRace(this,'UTMB Official Trail')" data-name="UTMB Official Trail"><div class="race-badge">🏔</div><div><div class="race-name">UTMB Official Trail</div><div class="race-meta">176 km · Réserve naturelle des Contamines</div></div></div>
+        <div class="race-result" onclick="pickRace(this,'UTMB Short Trail')" data-name="UTMB Short Trail"><div class="race-badge">⛰</div><div><div class="race-name">UTMB Short Trail</div><div class="race-meta">72 km · Réserve naturelle des Contamines</div></div></div>
+        <div class="race-result" onclick="pickRace(this,'UTMB XL Trail')" data-name="UTMB XL Trail"><div class="race-badge">🗻</div><div><div class="race-name">UTMB XL Trail</div><div class="race-meta">176 km · Réserve naturelle des Contamines</div></div></div>
+        <div class="race-result" onclick="pickRace(this,'CCC – Courmayeur-Champex-Chamonix')" data-name="CCC – Courmayeur-Champex-Chamonix"><div class="race-badge">⛰</div><div><div class="race-name">CCC – Courmayeur-Champex-Chamonix</div><div class="race-meta">101 km · Courmayeur</div></div></div>
+      </div>
+    </div>
+    <div class="bottom-safe"><button class="btn-p" onclick="goTo('s-date')">Continue</button></div>
+  </div>
+
+  <!-- ══ S9: RACE DATE ══ -->
+  <div class="screen" id="s-date">
+    <button class="back-btn" onclick="goTo('s-search')"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" fill="none"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:84%"></div></div></div>
+    <div class="scroll-body screen-pad" style="padding-top:18px;">
+      <p class="label-sm" style="margin-top:0;">Race date</p>
+      <h2 class="q sm">When do you plan to race it?</h2>
+      <div id="cal-widget"></div>
+    </div>
+    <div class="bottom-safe"><button class="btn-p" onclick="goTo('s-objective')">Continue</button></div>
+  </div>
+
+  <!-- ══ S10: TIME OBJECTIVE ══ -->
+  <div class="screen" id="s-objective">
+    <button class="back-btn" onclick="goTo('s-date')"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" fill="none"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:93%"></div></div></div>
+    <div class="scroll-body screen-pad" style="padding-top:18px;">
+      <p class="label-sm" style="margin-top:0;">Goal time</p>
+      <h2 class="q">What time objective are you aiming for?</h2>
+      <div class="picker-row">
+        <div class="pkr">
+          <button class="pkr-arrow" onclick="adj('oh',1,0,99)">▲</button>
+          <div class="pkr-val" id="oh">29</div>
+          <div class="pkr-unit">hours</div>
+          <button class="pkr-arrow" onclick="adj('oh',-1,0,99)">▼</button>
+        </div>
+        <div style="font-family:'Bebas Neue';font-size:72px;color:var(--border);line-height:1;">:</div>
+        <div class="pkr">
+          <button class="pkr-arrow" onclick="adj('om',5,0,55)">▲</button>
+          <div class="pkr-val" id="om">32</div>
+          <div class="pkr-unit">mins</div>
+          <button class="pkr-arrow" onclick="adj('om',-5,0,55)">▼</button>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-safe"><button class="btn-p" onclick="finishOnboarding()">Generate my plan →</button></div>
+  </div>
+
+  <!-- ══ S11: GENERATING ══ -->
+  <div class="screen" id="s-generating">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div style="font-size:16px;color:var(--text);font-weight:500;text-align:center;">Generating a dedicated<br>training plan</div>
+      <p style="font-size:12px;color:var(--muted);text-align:center;">Analysing your profile<br>& race objectives…</p>
+    </div>
+  </div>
+
+  <!-- ══ S12: TRAINING PLAN ══ -->
+  <div class="screen" id="s-plan">
+    <div style="height:14px;flex-shrink:0;"></div>
+    <div class="scroll-body" style="padding:0 20px;">
+
+      <!-- Race header -->
+      <div class="race-hdr">
+        <div class="race-hdr-info">
+          <div class="rt">YOUR RACE</div>
+          <div class="rn" id="plan-race-name">UTMB OFFICIAL TRAIL</div>
+          <div class="rs" id="plan-race-stats">176 km · 5'01 /km · 28h32</div>
+        </div>
+        <div class="score-badge">D·73</div>
+      </div>
+
+      <!-- Week nav -->
+      <div class="week-nav">
+        <button class="wk-btn" id="wk-prev" onclick="planNav(-1)">‹</button>
+        <div style="text-align:center;">
+          <div class="wk-label" id="wk-label">Week 1/12</div>
+          <div class="wk-sub" id="wk-sub">3 runs</div>
+        </div>
+        <button class="wk-btn" id="wk-next" onclick="planNav(1)">›</button>
+      </div>
+
+      <!-- Week timeline — clickable bars -->
+      <div id="week-timeline" style="display:flex;gap:3px;align-items:flex-end;height:52px;margin-bottom:20px;cursor:pointer;"></div>
+
+      <!-- Workout cards -->
+      <div id="workout-cards"></div>
+
+      <!-- Weekly workload -->
+      <p style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:4px 0 8px;">Weekly workload</p>
+      <div class="wl-grid">
+        <div class="wl-cell"><div class="wll"><div class="dot-r"></div>Distance</div><div class="wlv" id="wl-dist">—</div></div>
+        <div class="wl-cell"><div class="wll"><div class="dot-y"></div>Time</div><div class="wlv" id="wl-time">—</div></div>
+        <div class="wl-cell"><div class="wll"><div class="dot-r"></div>Elevation</div><div class="wlv" id="wl-elev">—</div></div>
+        <div class="wl-cell"><div class="wll"><div class="dot-y"></div>Calories</div><div class="wlv" id="wl-cal">—</div></div>
+      </div>
+      <div style="height:14px;"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item act"><div class="tab-icon">📋</div><span>Training</span></div>
+      <div class="tab-item" onclick="goTo('s-raceday');setTimeout(initRaceDay,320)"><div class="tab-icon">🏁</div><span>Race day</span></div>
+      <div class="tab-item" onclick="alert('Progress — coming soon')"><div class="tab-icon">📈</div><span>Progress</span></div>
+      <div class="tab-item" onclick="goTo('s-profile')"><div class="tab-icon">👤</div><span>Profile</span></div>
+    </div>
+  </div>
+
+  <!-- ══ S-RACEDAY: RACE DAY ══ -->
+  <div class="screen" id="s-raceday">
+
+<div id="rd-map-placeholder" style="position:absolute;inset:44px 0 82px 0;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+  <!-- Topo background — pointer-events:none so clicks pass through to content -->
+  <svg width="100%" height="100%" style="position:absolute;inset:0;pointer-events:none;" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <radialGradient id="topoGrad" cx="50%" cy="60%">
+        <stop offset="0%" stop-color="#172217"/>
+        <stop offset="100%" stop-color="#080e08"/>
+      </radialGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#topoGrad)"/>
+    <g stroke="rgba(255,255,255,0.04)" stroke-width="1" fill="none">
+      <ellipse cx="50%" cy="65%" rx="45%" ry="28%"/>
+      <ellipse cx="50%" cy="65%" rx="38%" ry="22%"/>
+      <ellipse cx="50%" cy="65%" rx="30%" ry="16%"/>
+      <ellipse cx="50%" cy="65%" rx="22%" ry="11%"/>
+      <ellipse cx="50%" cy="65%" rx="14%" ry="7%"/>
+      <ellipse cx="28%" cy="40%" rx="22%" ry="14%"/>
+      <ellipse cx="28%" cy="40%" rx="15%" ry="9%"/>
+      <ellipse cx="75%" cy="45%" rx="20%" ry="12%"/>
+    </g>
+  </svg>
+  <!-- Centered content — above SVG, fully clickable -->
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;">
+    <div style="font-size:40px;opacity:0.25;">🗺️</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.35);letter-spacing:1px;text-transform:uppercase;">No route imported yet</div>
+    <label style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:15px 32px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 4px 24px rgba(252,27,56,0.5);">
+      📂 Import GPX
+      <input type="file" accept=".gpx" style="display:none;" onchange="importGPX(this)">
+    </label>
+    <div style="font-size:10px;color:rgba(255,255,255,0.2);">Import a .gpx file to generate your race plan</div>
+  </div>
+</div>
+
+    <div id="rd-map" style="height:340px;flex-shrink:0;position:relative;overflow:hidden;background:#0d1a0d;">
+
+      <!-- Dark topo placeholder — shown before GPX import, hidden after -->
+      
+
+      <!-- Real tile map via Leaflet — fills entire div, hidden until GPX loaded -->
+      <div id="rd-leaflet-map" style="position:absolute;inset:0;z-index:1;width:100%;height:100%;"></div>
+      <!-- SVG overlay for GPX route -->
+      <svg id="rd-route-svg" width="100%" height="100%" style="position:absolute;inset:0;z-index:2;pointer-events:none;">
+        <polyline id="rd-route-line" points="" stroke="#3ddc84" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+        <g id="rd-section-dots"></g>
+        <circle id="rd-pos-dot" cx="0" cy="0" r="7" fill="#FC1B38" stroke="#fff" stroke-width="2" style="display:none;"/>
+      </svg>
+      <!-- Bottom gradient + race name -->
+      <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.85));padding:12px 16px 10px;z-index:3;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:19px;color:#fff;letter-spacing:1px;" id="rd-race-name-map">UTMB OFFICIAL TRAIL</div>
+        <div style="font-size:10px;color:var(--muted);" id="rd-race-loc">Réserve naturelle des Contamines-Montjoie</div>
+      </div>
+      <!-- D badge -->
+      <div style="position:absolute;top:52px;right:12px;background:var(--accent2);color:#fff;border-radius:8px;padding:5px 11px;font-family:'Bebas Neue',sans-serif;font-size:22px;z-index:4;">D·73</div>
+    </div>
+
+    <!-- FULL-SCREEN placeholder — covers everything before GPX import -->
+    <div id="rd-map-placeholder" style="position:absolute;inset:44px 0 82px 0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:radial-gradient(ellipse 140% 100% at 50% 60%,#1c2e1c,#080f08);">
+      <!-- Topo lines decoration -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.08;" viewBox="0 0 390 630" preserveAspectRatio="xMidYMid slice">
+        <ellipse cx="195" cy="380" rx="340" ry="220" fill="none" stroke="#fff" stroke-width="1"/>
+        <ellipse cx="195" cy="380" rx="280" ry="170" fill="none" stroke="#fff" stroke-width="1"/>
+        <ellipse cx="195" cy="380" rx="220" ry="130" fill="none" stroke="#fff" stroke-width="1"/>
+        <ellipse cx="195" cy="380" rx="160" ry="95" fill="none" stroke="#fff" stroke-width="1"/>
+        <ellipse cx="195" cy="380" rx="110" ry="65" fill="none" stroke="#fff" stroke-width="1"/>
+        <ellipse cx="195" cy="380" rx="65" ry="38" fill="none" stroke="#fff" stroke-width="1"/>
+        <ellipse cx="90" cy="180" rx="120" ry="80" fill="none" stroke="#fff" stroke-width="1"/>
+        <ellipse cx="90" cy="180" rx="80" ry="52" fill="none" stroke="#fff" stroke-width="1"/>
+        <ellipse cx="310" cy="220" rx="100" ry="65" fill="none" stroke="#fff" stroke-width="1"/>
+        <ellipse cx="310" cy="220" rx="65" ry="42" fill="none" stroke="#fff" stroke-width="1"/>
+      </svg>
+      <!-- Content -->
+      <div style="position:relative;text-align:center;display:flex;flex-direction:column;align-items:center;gap:20px;">
+        <div style="font-size:48px;opacity:0.25;">🗻</div>
+        <div>
+          <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:6px;">No route yet</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.25);">Import a GPX file to generate your race plan</div>
+        </div>
+        <label style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:15px 32px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 6px 24px rgba(252,27,56,0.4);letter-spacing:0.2px;">
+          📂 Import GPX
+          <input type="file" accept=".gpx" style="display:none;" onchange="importGPX(this)">
+        </label>
+      </div>
+    </div>
+
+    <!-- SCROLLABLE BODY — CTAs scroll with content -->
+    <div class="scroll-body" style="padding:0;">
+
+      <!-- ACTION BUTTONS — hidden until GPX imported -->
+      <div id="rd-action-btns" style="display:none;gap:10px;padding:12px 16px 4px;">
+        <button onclick="alert('Race mode — coming soon!')" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:13px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">▶ Start race</button>
+        <label id="gpx-import-btn" style="flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border2);border-radius:var(--radius);padding:13px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
+          📂 Import GPX
+          <input type="file" accept=".gpx" style="display:none;" onchange="importGPX(this)">
+        </label>
+      </div>
+
+      <!-- GPX CONTENT — hidden until GPX imported -->
+      <div id="rd-gpx-content" style="display:none;">
+
+        <!-- ELEVATION PROFILE — interactive -->
+        <div style="padding:12px 16px 0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Elevation profile</span>
+            <span style="font-size:10px;color:var(--muted);" id="rd-elev-max">2 440 m</span>
+          </div>
+          <div style="position:relative;" id="rd-elev-wrap">
+            <canvas id="rd-elev-canvas" width="358" height="80" style="width:100%;height:80px;cursor:crosshair;border-radius:6px;display:block;"></canvas>
+            <div id="rd-elev-sections" style="position:absolute;inset:0;pointer-events:none;"></div>
+            <div id="rd-scrub-tip" style="display:none;position:absolute;top:-30px;background:rgba(0,0,0,0.85);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;font-size:11px;color:#fff;white-space:nowrap;pointer-events:none;transform:translateX(-50%);">
+              <span id="rd-scrub-km">—</span> · <span id="rd-scrub-elev">—</span>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:3px;">
+            <span style="font-size:9px;color:var(--muted);">0 km</span>
+            <span style="font-size:9px;color:var(--muted);" id="rd-dist-mid">88 km</span>
+            <span style="font-size:9px;color:var(--muted);" id="rd-dist-total">176 km</span>
+          </div>
+        </div>
+
+        <!-- RACE STATS -->
+        <div style="display:flex;gap:24px;padding:12px 16px 10px;">
+          <div><div style="font-size:10px;color:var(--muted);">Time objective</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;line-height:1.1;" id="rd-time-obj">29h32</div></div>
+          <div><div style="font-size:10px;color:var(--muted);">Average pace</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;line-height:1.1;" id="rd-avg-pace">5'01 / km</div></div>
+        </div>
+
+        <!-- WEATHER STRIP -->
+        <div style="padding:0 16px 14px;">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Scheduled weather</div>
+          <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;" id="rd-weather-strip"></div>
+        </div>
+
+        <!-- SECTIONS HEADER -->
+        <div style="padding:0 16px 6px;border-top:1px solid var(--border);">
+          <div style="font-size:18px;font-weight:700;color:#fff;padding-top:16px;margin-bottom:12px;" id="rd-section-count">20 sections</div>
+        </div>
+
+        <!-- SECTIONS LIST -->
+        <div id="rd-sections-list" style="padding:0 16px;"></div>
+
+        <!-- RECOMMENDED GEAR -->
+        <div style="padding:14px 16px;">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Recommended gear</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="rd-gear-grid"></div>
+          <button style="width:100%;margin-top:12px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;">Discover the full gear</button>
+        </div>
+
+      </div><!-- /rd-gpx-content -->
+
+      <div style="height:14px;"></div>
+    </div>
+
+    <!-- TAB BAR -->
+    <div class="tab-bar">
+      <div class="tab-item" onclick="goTo('s-plan')"><div class="tab-icon">📋</div><span>Training</span></div>
+      <div class="tab-item act"><div class="tab-icon">🏁</div><span>Race day</span></div>
+      <div class="tab-item" onclick="alert('Progress — coming soon')"><div class="tab-icon">📈</div><span>Progress</span></div>
+      <div class="tab-item" onclick="goTo('s-profile')"><div class="tab-icon">👤</div><span>Profile</span></div>
+    </div>
+  </div>
+
+  <!-- ══ S13: PROFILE ══ -->
+  <div class="screen" id="s-profile">
+    <div style="height:8px;flex-shrink:0;"></div>
+    <div class="scroll-body">
+      <div class="profile-header">
+        <div class="avatar" id="av-initials">JS<div class="av-edit">✏️</div></div>
+        <div>
+          <div class="pf-name" id="pf-name">John Smith</div>
+          <div class="pf-email" id="pf-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="305a5f585e435d59445870575d51595c1e535f5d"><span class="__cf_email__" data-cfemail="c3a9acabadb0aeaab7ab83a4aea2aaafeda0acae">[email&#160;protected]</span></a></div>
+          <div class="pf-since">Member since March 2026</div>
+        </div>
+      </div>
+
+      <div class="completion-card">
+        <div class="comp-header">
+          <span class="comp-lbl">Profile completion</span>
+          <span class="comp-pct" id="comp-pct">0%</span>
+        </div>
+        <div class="comp-track"><div class="comp-fill" id="comp-fill" style="width:0%"></div></div>
+        <div class="comp-hint" id="comp-hint">Complete onboarding to generate your training plan</div>
+      </div>
+
+      <div class="sec-title">Runner profile</div>
+      <div class="crit-group">
+        <div class="crit-row" onclick="openSheet('weekly-hours')">
+          <div class="cr-icon">⏱</div>
+          <div class="cr-body"><div class="cr-lbl">Weekly training hours</div><div class="cr-val empty" id="v-weekly-hours">Not set</div></div>
+          <div class="cr-status"><div class="dot-e" id="dot-weekly-hours"></div><span class="src-badge miss" id="badge-weekly-hours">Missing</span></div>
+          <div class="chev-r">›</div>
+        </div>
+        <div class="crit-row" onclick="openSheet('session-length')">
+          <div class="cr-icon">🏃</div>
+          <div class="cr-body"><div class="cr-lbl">Max session length</div><div class="cr-val empty" id="v-session-length">Not set</div></div>
+          <div class="cr-status"><div class="dot-e" id="dot-session-length"></div><span class="src-badge miss" id="badge-session-length">Missing</span></div>
+          <div class="chev-r">›</div>
+        </div>
+        <div class="crit-row" onclick="openSheet('terrain')">
+          <div class="cr-icon">⛰️</div>
+          <div class="cr-body"><div class="cr-lbl">Training environments</div><div class="cr-val empty" id="v-terrain">Not set</div></div>
+          <div class="cr-status"><div class="dot-e" id="dot-terrain"></div><span class="src-badge miss" id="badge-terrain">Missing</span></div>
+          <div class="chev-r">›</div>
+        </div>
+        <div class="crit-row" onclick="openSheet('connected-apps')">
+          <div class="cr-icon">📲</div>
+          <div class="cr-body"><div class="cr-lbl">Connected training apps</div><div class="cr-val empty" id="v-apps">Not set</div></div>
+          <div class="cr-status"><div class="dot-e" id="dot-apps"></div><span class="src-badge miss" id="badge-apps">Missing</span></div>
+          <div class="chev-r">›</div>
+        </div>
+      </div>
+
+      <div class="sec-title">Target race</div>
+      <div class="crit-group">
+        <div class="crit-row" onclick="openSheet('race-type')">
+          <div class="cr-icon">🗺️</div>
+          <div class="cr-body"><div class="cr-lbl">Race type</div><div class="cr-val empty" id="v-race-type">Not set</div></div>
+          <div class="cr-status"><div class="dot-e" id="dot-race-type"></div><span class="src-badge miss" id="badge-race-type">Missing</span></div>
+          <div class="chev-r">›</div>
+        </div>
+        <div class="crit-row" onclick="openSheet('race-name')">
+          <div class="cr-icon">🏅</div>
+          <div class="cr-body"><div class="cr-lbl">Race name</div><div class="cr-val empty" id="v-race-name">Not set</div></div>
+          <div class="cr-status"><div class="dot-e" id="dot-race-name"></div><span class="src-badge miss" id="badge-race-name">Missing</span></div>
+          <div class="chev-r">›</div>
+        </div>
+        <div class="crit-row" onclick="openSheet('race-date')">
+          <div class="cr-icon">📅</div>
+          <div class="cr-body"><div class="cr-lbl">Race date</div><div class="cr-val empty" id="v-race-date">Not set — tap to add</div></div>
+          <div class="cr-status"><div class="dot-e" id="dot-race-date"></div><span class="src-badge miss" id="badge-race-date">Missing</span></div>
+          <div class="chev-r">›</div>
+        </div>
+        <div class="crit-row" onclick="openSheet('time-objective')">
+          <div class="cr-icon">🎯</div>
+          <div class="cr-body"><div class="cr-lbl">Time objective</div><div class="cr-val empty" id="v-time-objective">Not set — tap to add</div></div>
+          <div class="cr-status"><div class="dot-e" id="dot-time-objective"></div><span class="src-badge miss" id="badge-time-objective">Missing</span></div>
+          <div class="chev-r">›</div>
+        </div>
+      </div>
+
+      <div class="sec-title">Account</div>
+      <div class="crit-group">
+        <div class="crit-row" onclick="openSheet('personal-info')">
+          <div class="cr-icon">👤</div>
+          <div class="cr-body"><div class="cr-lbl">Personal info</div><div class="cr-val" id="v-personal">John Smith · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d2b8bdbabca1bfbba6ba92b5bfb3bbbefcb1bdbf"><span class="__cf_email__" data-cfemail="274d484f49544a4e534f67404a464e4b0944484a">[email&#160;protected]</span></a></div></div>
+          <div class="chev-r">›</div>
+        </div>
+        <div class="crit-row">
+          <div class="cr-icon">🌍</div>
+          <div class="cr-body"><div class="cr-lbl">Units</div><div class="cr-val">Kilometres, metres</div></div>
+          <div class="chev-r">›</div>
+        </div>
+      </div>
+
+      <div class="sec-title">Session</div>
+      <div class="crit-group">
+        <div class="danger-row" onclick="resetOnboarding()">
+          <div class="cr-icon">🔄</div>
+          <div class="cr-body"><div class="cr-lbl">Profile</div><div class="cr-val" style="color:var(--accent2);">Re-run onboarding</div></div>
+          <div class="chev-r">›</div>
+        </div>
+        <div class="danger-row" onclick="goTo('s-login')">
+          <div class="cr-icon">🚪</div>
+          <div class="cr-body"><div class="cr-lbl">Account</div><div class="cr-val" style="color:#ff4757;">Sign out</div></div>
+          <div class="chev-r">›</div>
+        </div>
+      </div>
+      <div style="height:14px;"></div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab-item" onclick="goTo('s-plan')"><div class="tab-icon">📋</div><span>Training</span></div>
+      <div class="tab-item" onclick="goTo('s-raceday');setTimeout(initRaceDay,320)"><div class="tab-icon">🏁</div><span>Race day</span></div>
+      <div class="tab-item" onclick="alert('Progress — coming soon')"><div class="tab-icon">📈</div><span>Progress</span></div>
+      <div class="tab-item act"><div class="tab-icon">👤</div><span>Profile</span></div>
+    </div>
+
+    <!-- EDIT SHEET -->
+    <div class="sheet-overlay" id="sheet-overlay" onclick="maybeClose(event)">
+      <div class="edit-sheet" id="edit-sheet">
+        <div class="sh-handle"></div>
+        <div class="sh-header">
+          <div class="sh-title" id="sh-title">Edit</div>
+          <div class="sh-close" onclick="closeSheet()">✕</div>
+        </div>
+        <div class="sh-body" id="sh-body"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone-shell -->
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+<script>
+(function(){
+
+// ─────────────────────────────────────────
+//  CENTRAL USER DATA MODEL
+// ─────────────────────────────────────────
+const user = {
+  name: 'John Smith',
+  email: 'johnsmith@gmail.com',
+  weeklyHours: null,
+  sessionLength: null,
+  terrain: [],
+  apps: [],
+  raceType: null,
+  raceName: null,
+  raceDate: null,
+  timeObjectiveH: null,
+  timeObjectiveM: null,
+};
+
+// ─────────────────────────────────────────
+//  NAVIGATION
+// ─────────────────────────────────────────
+let current = 's-login';
+// Tab screens — these use fade/scale transition instead of slide
+const TAB_SCREENS = new Set(['s-plan','s-raceday','s-profile']);
+
+function goTo(id, isTab) {
+  if (id === current) return;
+  const c = document.getElementById(current);
+  const n = document.getElementById(id);
+  if (!c || !n) return;
+
+  // Use tab transition (fade/scale) when both screens are tab screens
+  // or when explicitly called as tab navigation
+  const useTabTransition = isTab || (TAB_SCREENS.has(id) && TAB_SCREENS.has(current));
+
+  if (useTabTransition) {
+    c.classList.add('tab-out');
+    n.classList.add('tab-in');
+    setTimeout(() => {
+      c.classList.remove('active','tab-out');
+      n.classList.remove('tab-in');
+      n.classList.add('active');
+      current = id;
+    }, 180);
+  } else {
+    c.classList.add('exit');
+    setTimeout(() => {
+      c.classList.remove('active','exit');
+      n.classList.add('active');
+      current = id;
+    }, 280);
+  }
+}
+
+// ─────────────────────────────────────────
+//  ONBOARDING HELPERS
+// ─────────────────────────────────────────
+function adj(id, delta, min, max) {
+  const el = document.getElementById(id);
+  let v = parseInt(el.textContent) + delta;
+  v = Math.min(max, Math.max(min, v));
+  el.textContent = id === 'om' ? String(v).padStart(2,'0') : v;
+}
+
+function saveWeeklyHours() {
+  user.weeklyHours = parseInt(document.getElementById('wh').textContent);
+  goTo('s-session');
+}
+
+function saveSessionLength() {
+  user.sessionLength = parseInt(document.getElementById('sl').textContent);
+  goTo('s-terrain');
+}
+
+function toggleApp(el, val) {
+  el.classList.toggle('on');
+  if (el.classList.contains('on')) { if (!user.apps.includes(val)) user.apps.push(val); }
+  else { user.apps = user.apps.filter(a => a !== val); }
+}
+
+function saveApps() {
+  user.apps = [...document.querySelectorAll('.app-card.on')].map(c => c.querySelector('span').textContent);
+}
+
+function toggleTerrain(el, val) {
+  el.classList.toggle('on');
+  if (el.classList.contains('on')) { if (!user.terrain.includes(val)) user.terrain.push(val); }
+  else { user.terrain = user.terrain.filter(t => t !== val); }
+}
+
+function pickRaceType(val, onId, offId) {
+  user.raceType = val;
+  document.getElementById(onId).classList.add('on');
+  document.getElementById(offId).classList.remove('on');
+}
+
+function pickRace(el, name) {
+  user.raceName = name;
+  document.querySelectorAll('.race-result').forEach(r => r.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function filterRaces(val) {
+  document.querySelectorAll('.race-result').forEach(r => {
+    r.style.display = r.dataset.name.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
+  });
+}
+
+// Calendar
+let calY = 2026, calM = 8, calSel = null;
+function buildCal() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const firstDay = new Date(calY, calM, 1).getDay();
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  const total = new Date(calY, calM + 1, 0).getDate();
+  const selStr = calSel ? new Date(calSel).toDateString() : null;
+  let h = `<div class="cal-header"><button class="cal-arrow-btn" onclick="navCal(-1)">‹</button><div class="cal-month">${months[calM]} ${calY}</div><button class="cal-arrow-btn" onclick="navCal(1)">›</button></div>`;
+  h += `<div class="cal-dh">${days.map(d=>`<span>${d}</span>`).join('')}</div><div class="cal-grid">`;
+  for(let i=0;i<offset;i++) h+=`<div class="cal-day empty"></div>`;
+  for(let d=1;d<=total;d++) {
+    const date = new Date(calY, calM, d);
+    const sel = selStr && date.toDateString() === selStr ? ' sel' : '';
+    h+=`<div class="cal-day${sel}" onclick="selDay(${d})">${d}</div>`;
+  }
+  h+=`</div>`;
+  document.getElementById('cal-widget').innerHTML = h;
+}
+function navCal(d) { calM+=d; if(calM>11){calM=0;calY++;} if(calM<0){calM=11;calY--;} buildCal(); }
+function selDay(d) { calSel = new Date(calY, calM, d).toISOString(); user.raceDate = calSel; buildCal(); }
+
+// ─────────────────────────────────────────
+//  FINISH ONBOARDING → WRITE TO PROFILE
+// ─────────────────────────────────────────
+function finishOnboarding() {
+  // Collect remaining picker values
+  user.weeklyHours = user.weeklyHours ?? parseInt(document.getElementById('wh').textContent);
+  user.sessionLength = user.sessionLength ?? parseInt(document.getElementById('sl').textContent);
+  user.timeObjectiveH = parseInt(document.getElementById('oh').textContent);
+  user.timeObjectiveM = parseInt(document.getElementById('om').textContent);
+
+  // Collect terrain from DOM if not already stored
+  if (user.terrain.length === 0) {
+    document.querySelectorAll('#s-terrain .opt-card.on').forEach(el => {
+      const key = el.querySelector('.ol').textContent.trim().replace(/\s+\(.*\)/, match => match);
+      user.terrain.push(el.querySelector('.ol').textContent.replace(/\s+/g,' ').trim());
+    });
+  }
+
+  // Collect race type if not set
+  if (!user.raceType) {
+    user.raceType = document.getElementById('rt-existing').classList.contains('on') ? 'Existing trail' : 'Custom one';
+  }
+
+  // Update training plan screen with race info
+  if (user.raceName) {
+    document.getElementById('plan-race-name').textContent = user.raceName.toUpperCase();
+  }
+
+  // Show generating screen then plan
+  goTo('s-generating');
+  setTimeout(() => {
+    renderProfile();
+    initPlan();
+    goTo('s-plan');
+  }, 2800);
+}
+
+// ─────────────────────────────────────────
+//  RENDER PROFILE FROM user OBJECT
+// ─────────────────────────────────────────
+function renderProfile() {
+  setField('weekly-hours', user.weeklyHours ? `${user.weeklyHours} hours / week` : null);
+  setField('session-length', user.sessionLength ? `${user.sessionLength} hour${user.sessionLength!==1?'s':''}` : null);
+  setField('terrain', user.terrain.length ? user.terrain.map(t=>t.split(' (')[0]).join(', ') : null);
+  setField('apps', user.apps.length ? user.apps.join(', ') : null);
+  setField('race-type', user.raceType);
+  setField('race-name', user.raceName);
+
+  if (user.raceDate) {
+    const d = new Date(user.raceDate);
+    setField('race-date', d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}));
+  } else {
+    setField('race-date', null, 'Not set — tap to add');
+  }
+
+  if (user.timeObjectiveH !== null) {
+    const m = String(user.timeObjectiveM||0).padStart(2,'0');
+    setField('time-objective', `${user.timeObjectiveH}h ${m}min`);
+  } else {
+    setField('time-objective', null, 'Not set — tap to add');
+  }
+
+  document.getElementById('v-personal').textContent = `${user.name} · ${user.email}`;
+  document.getElementById('pf-name').textContent = user.name;
+  document.getElementById('pf-email').textContent = user.email;
+
+  updateCompletion();
+}
+
+function setField(key, val, emptyText = 'Not set') {
+  const el = document.getElementById(`v-${key}`);
+  const dot = document.getElementById(`dot-${key}`);
+  const badge = document.getElementById(`badge-${key}`);
+  if (!el) return;
+  if (val) {
+    el.textContent = val;
+    el.classList.remove('empty');
+    if (dot) { dot.className = 'dot-f'; }
+    if (badge) { badge.textContent = 'Onboarding'; badge.classList.remove('miss'); }
+  } else {
+    el.textContent = emptyText;
+    el.classList.add('empty');
+    if (dot) { dot.className = 'dot-e'; }
+    if (badge) { badge.textContent = 'Missing'; badge.classList.add('miss'); }
+  }
+}
+
+function updateCompletion() {
+  const fields = [user.weeklyHours, user.sessionLength, user.terrain.length||null, user.apps.length||null, user.raceType, user.raceName, user.raceDate, user.timeObjectiveH];
+  const filled = fields.filter(f => f !== null && f !== undefined).length;
+  const pct = Math.round(filled / fields.length * 100);
+  document.getElementById('comp-pct').textContent = pct + '%';
+  document.getElementById('comp-fill').style.width = pct + '%';
+  const hints = {
+    100: '✅ Profile complete — your training plan is fully personalised!',
+    75: 'Almost done! Add your race date & time objective.',
+    50: 'Add your race details to personalise your plan.',
+    0: 'Complete onboarding to generate your training plan.',
+  };
+  const key = pct >= 100 ? 100 : pct >= 75 ? 75 : pct >= 50 ? 50 : 0;
+  document.getElementById('comp-hint').textContent = hints[key];
+}
+
+function resetOnboarding() {
+  Object.assign(user, { weeklyHours:null, sessionLength:null, terrain:[], apps:[], raceType:null, raceName:null, raceDate:null, timeObjectiveH:null, timeObjectiveM:null });
+  renderProfile();
+  goTo('s-intro');
+}
+
+// ─────────────────────────────────────────
+//  PROFILE EDIT SHEETS
+// ─────────────────────────────────────────
+let sp = {};
+const sheets = {
+  'weekly-hours': {
+    title:'Weekly training hours',
+    render() { sp.h=user.weeklyHours??14; return `<p class="sh-lbl">Hours per week</p><div class="sh-pkr-row"><div class="sh-pkr"><button class="sh-pa" onclick="spa('h',1,1,40)">▲</button><div class="sh-pv" id="sph">${sp.h}</div><div class="sh-pu">hours</div><button class="sh-pa" onclick="spa('h',-1,1,40)">▼</button></div></div><button class="sh-save" onclick="saveSheet('weekly-hours')">Save</button>`; },
+    save() { user.weeklyHours=sp.h; }
+  },
+  'session-length': {
+    title:'Max session length',
+    render() { sp.h=user.sessionLength??3; return `<p class="sh-lbl">Longest session</p><div class="sh-pkr-row"><div class="sh-pkr"><button class="sh-pa" onclick="spa('h',1,1,12)">▲</button><div class="sh-pv" id="sph">${sp.h}</div><div class="sh-pu">hours</div><button class="sh-pa" onclick="spa('h',-1,1,12)">▼</button></div></div><button class="sh-save" onclick="saveSheet('session-length')">Save</button>`; },
+    save() { user.sessionLength=sp.h; }
+  },
+  'terrain': {
+    title:'Training environments',
+    render() {
+      const opts=['Flat treadmill','Inclined treadmill','Flat running terrain','Gently sloped (100m+)','Moderately hilly (500m+)','Mountainous (1000m+)'];
+      return `<p class="sh-lbl">Select all that apply</p><div class="sh-chips">${opts.map(o=>`<div class="sh-chip${user.terrain.includes(o)?' on':''}" onclick="stToggle(this,'${o}')">${o}</div>`).join('')}</div><button class="sh-save" onclick="saveSheet('terrain')">Save</button>`;
+    },
+    save() {}
+  },
+  'connected-apps': {
+    title:'Connected apps',
+    render() {
+      const opts=['Strava','Nike Run','Garmin','Kiprun'];
+      return `<p class="sh-lbl">Select apps to sync</p><div class="sh-chips">${opts.map(o=>`<div class="sh-chip${user.apps.includes(o)?' on':''}" onclick="saToggle(this,'${o}')">${o}</div>`).join('')}</div><button class="sh-save" onclick="saveSheet('connected-apps')">Save</button>`;
+    },
+    save() {}
+  },
+  'race-type': {
+    title:'Race type',
+    render() { return `<p class="sh-lbl">Type of race</p><div class="sh-chips" style="flex-direction:column;"><div class="sh-chip${user.raceType==='Existing trail'?' on':''}" style="text-align:center;" onclick="srtSet(this,'Existing trail')">🗺️ Existing trail</div><div class="sh-chip${user.raceType==='Custom one'?' on':''}" style="text-align:center;" onclick="srtSet(this,'Custom one')">✏️ Custom one</div></div><button class="sh-save" onclick="saveSheet('race-type')" style="margin-top:14px;">Save</button>`; },
+    save() {}
+  },
+  'race-name': {
+    title:'Race name',
+    render() {
+      const races=[{n:'UTMB Official Trail',m:'176 km · Chamonix',i:'🏔'},{n:'UTMB Short Trail',m:'72 km · Chamonix',i:'⛰'},{n:'UTMB XL Trail',m:'176 km · Chamonix',i:'🗻'},{n:'CCC – Courmayeur-Champex-Chamonix',m:'101 km · Courmayeur',i:'⛰'}];
+      return `<p class="sh-lbl">Search race</p><div class="sh-search"><span style="color:var(--muted)">🔍</span><input type="text" placeholder="Search…" oninput="sRaceFilter(this.value)" value="${user.raceName||''}"></div><div id="sh-race-list">${races.map(r=>`<div class="sh-race-opt" onclick="sRacePick('${r.n}')"><div class="sh-rbadge">${r.i}</div><div><div class="sh-rn">${r.n}</div><div class="sh-rm">${r.m}</div></div>${user.raceName===r.n?'<span style="color:var(--accent);margin-left:auto">✓</span>':''}</div>`).join('')}</div><button class="sh-save" onclick="saveSheet('race-name')" style="margin-top:8px;">Confirm</button>`;
+    },
+    save() {}
+  },
+  'race-date': {
+    title:'Race date',
+    render() { return `<p class="sh-lbl">When is your race?</p><div id="mini-cal"></div><button class="sh-save" onclick="saveSheet('race-date')">Confirm date</button>`; },
+    afterRender() { buildMiniCal(); },
+    save() { user.raceDate = miniSel; }
+  },
+  'time-objective': {
+    title:'Time objective',
+    render() { sp.h=user.timeObjectiveH??29; sp.m=user.timeObjectiveM??30; return `<p class="sh-lbl">Goal finish time</p><div class="sh-pkr-row"><div class="sh-pkr"><button class="sh-pa" onclick="spa('h',1,0,99)">▲</button><div class="sh-pv" id="sph">${sp.h}</div><div class="sh-pu">hours</div><button class="sh-pa" onclick="spa('h',-1,0,99)">▼</button></div><div style="font-family:'Bebas Neue';font-size:58px;color:var(--border);line-height:1;">:</div><div class="sh-pkr"><button class="sh-pa" onclick="spa('m',5,0,55)">▲</button><div class="sh-pv" id="spm">${String(sp.m).padStart(2,'0')}</div><div class="sh-pu">mins</div><button class="sh-pa" onclick="spa('m',-5,0,55)">▼</button></div></div><button class="sh-save" onclick="saveSheet('time-objective')">Save</button>`; },
+    save() { user.timeObjectiveH=sp.h; user.timeObjectiveM=sp.m; }
+  },
+  'personal-info': {
+    title:'Personal info',
+    render() { return `<p class="sh-lbl">Name</p><input class="sh-input" id="pi-name" type="text" value="${user.name}"><p class="sh-lbl">Email</p><input class="sh-input" id="pi-email" type="email" value="${user.email}"><button class="sh-save" onclick="saveSheet('personal-info')">Save</button>`; },
+    save() {
+      user.name = document.getElementById('pi-name').value || user.name;
+      user.email = document.getElementById('pi-email').value || user.email;
+      document.getElementById('pf-name').textContent = user.name;
+      document.getElementById('pf-email').textContent = user.email;
+      document.getElementById('av-initials').childNodes[0].textContent = user.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    }
+  }
+};
+
+let activeSheet = null;
+function openSheet(key) {
+  activeSheet = key;
+  const s = sheets[key];
+  document.getElementById('sh-title').textContent = s.title;
+  document.getElementById('sh-body').innerHTML = s.render();
+  document.getElementById('sheet-overlay').classList.add('open');
+  if (s.afterRender) setTimeout(s.afterRender, 40);
+}
+function closeSheet() { document.getElementById('sheet-overlay').classList.remove('open'); activeSheet = null; }
+function maybeClose(e) { if (e.target.id === 'sheet-overlay') closeSheet(); }
+function saveSheet(key) { sheets[key].save(); closeSheet(); renderProfile(); }
+
+function spa(k, d, min, max) {
+  sp[k] = Math.min(max, Math.max(min, (sp[k]||0) + d));
+  const el = document.getElementById('sp'+k);
+  if (el) el.textContent = k==='m' ? String(sp[k]).padStart(2,'0') : sp[k];
+}
+function stToggle(el, v) { el.classList.toggle('on'); if(el.classList.contains('on')){if(!user.terrain.includes(v))user.terrain.push(v);}else{user.terrain=user.terrain.filter(t=>t!==v);} }
+function saToggle(el, v) { el.classList.toggle('on'); if(el.classList.contains('on')){if(!user.apps.includes(v))user.apps.push(v);}else{user.apps=user.apps.filter(a=>a!==v);} }
+function srtSet(el, v) { el.closest('.sh-chips').querySelectorAll('.sh-chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); user.raceType=v; }
+function sRacePick(n) { user.raceName=n; document.querySelectorAll('.sh-race-opt').forEach(r=>{const tick=r.querySelector('span[style]');if(tick)tick.remove();if(r.querySelector('.sh-rn').textContent===n)r.insertAdjacentHTML('beforeend','<span style="color:var(--accent);margin-left:auto">✓</span>');}); }
+function sRaceFilter(v) { document.querySelectorAll('.sh-race-opt').forEach(r=>{r.style.display=r.querySelector('.sh-rn').textContent.toLowerCase().includes(v.toLowerCase())?'':'none';}); }
+
+// Mini calendar for sheet
+let miniCalY=2026, miniCalM=8, miniSel=null;
+function buildMiniCal() {
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days=['M','T','W','T','F','S','S'];
+  const firstDay=new Date(miniCalY,miniCalM,1).getDay();
+  const offset=firstDay===0?6:firstDay-1;
+  const total=new Date(miniCalY,miniCalM+1,0).getDate();
+  const selStr=miniSel?new Date(miniSel).toDateString():null;
+  let h=`<div class="mini-cal-header"><button class="mini-cal-btn" onclick="mCalNav(-1)">‹</button><span class="mini-cal-month">${months[miniCalM]} ${miniCalY}</span><button class="mini-cal-btn" onclick="mCalNav(1)">›</button></div>`;
+  h+=`<div class="mini-cal-dh">${days.map(d=>`<span>${d}</span>`).join('')}</div><div class="mini-cal-grid">`;
+  for(let i=0;i<offset;i++) h+=`<div class="mini-day mcal-empty"></div>`;
+  for(let d=1;d<=total;d++){const date=new Date(miniCalY,miniCalM,d);const sel=selStr&&date.toDateString()===selStr?' mcal-sel':'';h+=`<div class="mini-day${sel}" onclick="mCalSel(${d})">${d}</div>`;}
+  h+=`</div>`;
+  document.getElementById('mini-cal').innerHTML=h;
+}
+function mCalNav(d){miniCalM+=d;if(miniCalM>11){miniCalM=0;miniCalY++;}if(miniCalM<0){miniCalM=11;miniCalY--;}buildMiniCal();}
+function mCalSel(d){miniSel=new Date(miniCalY,miniCalM,d).toISOString();buildMiniCal();}
+// ─────────────────────────────────────────
+//  TRAINING PLAN DATA & LOGIC
+// ─────────────────────────────────────────
+
+// Placeholder plan — 12 weeks, 3 runs each
+// This will be replaced by the real algorithm later
+const TOTAL_WEEKS = 12;
+const TODAY_WEEK = 1; // Current week (1-indexed, would be dynamic in production)
+
+// Generate placeholder plan data
+function generatePlanData() {
+  const types = [
+    { type: 'VO2 max',                   dur: 50,  dist: 7,  elev: 500,  cal: 480  },
+    { type: 'Endurance (volume)',         dur: 90,  dist: 14, elev: 200,  cal: 860  },
+    { type: 'Aerobic threshold',          dur: 60,  dist: 10, elev: 300,  cal: 600  },
+    { type: 'Long run',                   dur: 150, dist: 22, elev: 800,  cal: 1400 },
+    { type: 'Recovery run',              dur: 40,  dist: 6,  elev: 100,  cal: 320  },
+    { type: 'Hill repeats',              dur: 70,  dist: 9,  elev: 900,  cal: 720  },
+  ];
+
+  const weeks = [];
+  for (let w = 1; w <= TOTAL_WEEKS; w++) {
+    // Volume ramps up weeks 1-9, tapers weeks 10-12
+    const loadFactor = w <= 9 ? w / 9 : (TOTAL_WEEKS - w + 1) / 4;
+    const runs = [
+      { ...types[(w + 0) % types.length], completed: false },
+      { ...types[(w + 2) % types.length], completed: false },
+      { ...types[(w + 4) % types.length], completed: false },
+    ];
+    // Simulate: in past weeks, some runs are completed
+    if (w < TODAY_WEEK) {
+      runs.forEach(r => r.completed = true); // past weeks fully done
+    }
+    weeks.push({ week: w, runs, loadFactor: Math.max(0.2, loadFactor) });
+  }
+  return weeks;
+}
+
+let planData = generatePlanData();
+let currentWeek = TODAY_WEEK; // 1-indexed
+
+// ─── RENDER WEEK TIMELINE ───
+function renderTimeline() {
+  const el = document.getElementById('week-timeline');
+  if (!el) return;
+
+  el.innerHTML = planData.map((wk, i) => {
+    const wNum = i + 1;
+    const isCurrent = wNum === currentWeek;
+    const completedRuns = wk.runs.filter(r => r.completed).length;
+    const hasAny = completedRuns > 0;
+    const heightPct = Math.round(20 + wk.loadFactor * 80);
+
+    // Colors
+    let bg, border, opacity;
+    if (isCurrent) {
+      bg = hasAny ? 'var(--accent2)' : 'transparent';
+      border = `2px solid var(--accent)`;
+      opacity = 1;
+    } else if (hasAny) {
+      bg = 'var(--accent2)';
+      border = '2px solid transparent';
+      opacity = wNum < currentWeek ? 0.5 : 0.85;
+    } else {
+      bg = 'transparent';
+      border = `2px solid var(--border2)`;
+      opacity = wNum < currentWeek ? 0.3 : 0.7;
+    }
+
+    return `<div
+      onclick="planGoTo(${wNum})"
+      title="Week ${wNum}"
+      style="
+        flex:1; height:${heightPct}%; border-radius:4px 4px 2px 2px;
+        background:${bg}; border:${border}; opacity:${opacity};
+        transition:all 0.2s; cursor:pointer; box-sizing:border-box;
+        ${isCurrent ? 'box-shadow:0 0 0 1px rgba(252,27,56,0.4);' : ''}
+      "
+    ></div>`;
+  }).join('');
+}
+
+// ─── RENDER WEEK DETAIL ───
+function renderWeekDetail() {
+  const wk = planData[currentWeek - 1];
+  if (!wk) return;
+
+  const completedRuns = wk.runs.filter(r => r.completed).length;
+  const totalRuns = wk.runs.length;
+
+  // Header
+  document.getElementById('wk-label').textContent = `Week ${currentWeek}/${TOTAL_WEEKS}`;
+  document.getElementById('wk-sub').textContent = `${totalRuns} runs · ${completedRuns}/${totalRuns} completed`;
+
+  // Arrow visibility
+  document.getElementById('wk-prev').style.opacity = currentWeek <= 1 ? '0.3' : '1';
+  document.getElementById('wk-next').style.opacity = currentWeek >= TOTAL_WEEKS ? '0.3' : '1';
+
+  // Workout cards
+  const cardsEl = document.getElementById('workout-cards');
+  cardsEl.innerHTML = wk.runs.map((run, i) => {
+    const isFirst = i === 0;
+    const highlight = isFirst && !run.completed;
+    return `
+      <div class="wo-card" onclick="toggleRunComplete(${currentWeek - 1}, ${i})" style="
+        ${run.completed ? 'opacity:0.5;' : ''}
+        position:relative; overflow:hidden;
+      ">
+        ${run.completed ? `<div style="position:absolute;top:10px;right:40px;font-size:11px;color:var(--green);font-weight:600;">✓ Done</div>` : ''}
+        <div>
+          <div class="wo-type${highlight ? ' hl' : ''}" style="${run.completed ? 'text-decoration:line-through;' : ''}">
+            ${run.type}
+            ${highlight ? `<span style="font-size:10px;color:var(--muted);font-family:'DM Sans';">Start running!</span>` : ''}
+          </div>
+          <div class="wo-meta">
+            <span><strong>${run.dur} mn</strong>Time</span>
+            <span><strong>${run.dist} km</strong>Distance</span>
+            <span><strong>${run.elev} m</strong>Elevation</span>
+          </div>
+        </div>
+        <div class="chev">›</div>
+      </div>`;
+  }).join('');
+
+  // Workload totals
+  const totDist = wk.runs.reduce((s, r) => s + r.dist, 0);
+  const totTime = wk.runs.reduce((s, r) => s + r.dur, 0);
+  const totElev = wk.runs.reduce((s, r) => s + r.elev, 0);
+  const totCal  = wk.runs.reduce((s, r) => s + r.cal, 0);
+  const h = Math.floor(totTime / 60), m = totTime % 60;
+
+  document.getElementById('wl-dist').textContent = `${totDist} km`;
+  document.getElementById('wl-time').textContent = `${h}h ${m}mn`;
+  document.getElementById('wl-elev').textContent = `${totElev} m`;
+  document.getElementById('wl-cal').textContent = `${totCal} Kcal`;
+}
+
+// ─── NAVIGATE ───
+function planNav(delta) {
+  const next = currentWeek + delta;
+  if (next < 1 || next > TOTAL_WEEKS) return;
+  planGoTo(next);
+}
+
+function planGoTo(wNum) {
+  currentWeek = wNum;
+  renderTimeline();
+  renderWeekDetail();
+}
+
+// ─── MARK RUN AS COMPLETE ───
+function toggleRunComplete(weekIdx, runIdx) {
+  planData[weekIdx].runs[runIdx].completed = !planData[weekIdx].runs[runIdx].completed;
+  renderTimeline();
+  renderWeekDetail();
+}
+
+// ─── INIT PLAN (called after onboarding finishes) ───
+function initPlan() {
+  planData = generatePlanData();
+  currentWeek = TODAY_WEEK;
+  renderTimeline();
+  renderWeekDetail();
+}
+
+// ─────────────────────────────────────────
+//  LEAFLET MAP — load CSS + JS dynamically
+// ─────────────────────────────────────────
+function loadLeaflet() {
+  // CSS is already loaded statically in <head>
+  // Only load the JS if not already loaded
+  if (window.L) return; // Already loaded
+  if (document.getElementById('leaflet-js')) return; // Already loading
+  const s = document.createElement('script');
+  s.id = 'leaflet-js';
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+  s.onload = () => {
+    window._leafletReady = true;
+    // Auto-init if race day screen is already showing
+    const rdScreen = document.getElementById('s-raceday');
+    if (rdScreen && rdScreen.classList.contains('active')) {
+      setTimeout(initLeafletMap, 100);
+    }
+  };
+  document.head.appendChild(s);
+}
+loadLeaflet(); // call immediately on page load
+
+let _leafletMap = null;
+let _leafletPolyline = null;
+let _leafletMarker = null;
+
+function initLeafletMap() {
+  if (!window.L) return;
+
+  // Destroy cleanly if already exists
+  if (_leafletMap) {
+    try { _leafletMap.remove(); } catch(e) {}
+    _leafletMap = null; _leafletPolyline = null; _leafletMarker = null;
+  }
+
+  const el = document.getElementById('rd-leaflet-map');
+  if (!el) return;
+
+  // Force explicit dimensions on the container — Leaflet needs this
+  const parent = document.getElementById('rd-map');
+  const h = parent ? (parent.offsetHeight || 340) : 340;
+  el.style.width = '100%';
+  el.style.height = h + 'px';
+  el.style.position = 'absolute';
+  el.style.inset = '0';
+
+  _leafletMap = L.map('rd-leaflet-map', {
+    zoomControl: false, attributionControl: false,
+    dragging: true, touchZoom: true, scrollWheelZoom: false,
+    preferCanvas: true,
+  });
+
+  L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 15, opacity: 0.92,
+  }).addTo(_leafletMap);
+
+  // Multiple invalidateSize calls to handle async rendering
+  setTimeout(() => { _leafletMap.invalidateSize(); drawLeafletRoute(); }, 50);
+  setTimeout(() => { _leafletMap.invalidateSize(); }, 300);
+  setTimeout(() => { _leafletMap.invalidateSize(); }, 800);
+}
+
+function drawLeafletRoute() {
+  if (!window.L || !_leafletMap) return;
+  if (_leafletPolyline) { _leafletMap.removeLayer(_leafletPolyline); }
+  if (_leafletMarker) { _leafletMap.removeLayer(_leafletMarker); }
+
+  if (rdRoute.length < 2) return;
+
+  _leafletPolyline = L.polyline(rdRoute, {
+    color: '#3ddc84', weight: 4, opacity: 0.95,
+    lineCap: 'round', lineJoin: 'round',
+  }).addTo(_leafletMap);
+
+  // Start marker
+  L.circleMarker(rdRoute[0], { radius:6, fillColor:'#3ddc84', color:'#fff', weight:2, fillOpacity:1 }).addTo(_leafletMap);
+  // End marker
+  L.circleMarker(rdRoute[rdRoute.length-1], { radius:6, fillColor:'#ff4757', color:'#fff', weight:2, fillOpacity:1 }).addTo(_leafletMap);
+
+  // Checkpoint markers
+  [0.25, 0.5, 0.75].forEach(pct => {
+    const idx = Math.floor(pct * (rdRoute.length-1));
+    L.circleMarker(rdRoute[idx], { radius:4, fillColor:'#FC1B38', color:'#fff', weight:1.5, fillOpacity:1 }).addTo(_leafletMap);
+  });
+
+  _leafletMap.fitBounds(_leafletPolyline.getBounds(), { padding: [24, 24] });
+  setTimeout(() => _leafletMap.invalidateSize(), 100);
+}
+
+function updateLeafletPosition(pct) {
+  if (!window.L || !_leafletMap) return;
+  const idx = Math.round(pct * (rdRoute.length-1));
+  const pt = rdRoute[idx];
+  if (!pt) return;
+  if (_leafletMarker) _leafletMap.removeLayer(_leafletMarker);
+  _leafletMarker = L.circleMarker(pt, {
+    radius:8, fillColor:'#FC1B38', color:'#fff', weight:2, fillOpacity:1,
+  }).addTo(_leafletMap);
+}
+
+// ─────────────────────────────────────────
+//  RACE DAY DATA & LOGIC
+// ─────────────────────────────────────────
+
+// Default GPX route: simplified UTMB-like path (lat/lon pairs)
+// Will be replaced when user imports a real GPX file
+const DEFAULT_ROUTE = [
+  [45.9237,6.8694],[45.9198,6.8750],[45.9150,6.8820],[45.9090,6.8900],
+  [45.9020,6.8980],[45.8960,6.9060],[45.8900,6.9150],[45.8840,6.9250],
+  [45.8780,6.9380],[45.8700,6.9500],[45.8640,6.9640],[45.8580,6.9780],
+  [45.8520,6.9900],[45.8460,7.0050],[45.8400,7.0200],[45.8340,7.0380],
+  [45.8300,7.0550],[45.8260,7.0720],[45.8220,7.0900],[45.8200,7.1100],
+  [45.8230,7.1300],[45.8270,7.1500],[45.8310,7.1680],[45.8370,7.1850],
+  [45.8430,7.2000],[45.8500,7.2150],[45.8570,7.2300],[45.8650,7.2420],
+  [45.8740,7.2520],[45.8820,7.2600],[45.8900,7.2650],[45.8960,7.2680],
+  [45.9030,7.2700],[45.9100,7.2680],[45.9160,7.2650],[45.9220,7.2600],
+  [45.9270,7.2530],[45.9310,7.2450],[45.9330,7.2350],[45.9330,7.2240],
+  [45.9310,7.2130],[45.9270,7.2020],[45.9230,7.1910],[45.9200,7.1800],
+  [45.9180,7.1680],[45.9170,7.1550],[45.9180,7.1420],[45.9200,7.1300],
+];
+
+// Elevation profile (metres, one per point)
+const DEFAULT_ELEVATION = [
+  1035,1080,1200,1380,1560,1720,1840,1920,2100,2250,2380,2440,
+  2300,2150,1980,1820,1640,1450,1280,1100,980,1050,1180,1350,
+  1520,1680,1820,1940,2080,2200,2310,2380,2440,2350,2220,2080,
+  1940,1820,1680,1520,1380,1220,1100,980,880,820,800,850,900,950
+];
+
+// ── Smart section splitting from elevation profile ──
+// Instead of fixed number of sections, detects meaningful terrain changes:
+// a long climb becomes one section, a descent becomes another, flat stretches group together.
+function generateSectionsFromElevation(elev, route) {
+  if (!elev || elev.length < 2) return [];
+
+  const totalKm = route.length || elev.length;
+  const kmPerPt = totalKm / elev.length;
+
+  // Step 1: Smooth elevation to remove GPS noise
+  const W = Math.max(3, Math.floor(elev.length * 0.06));
+  const smoothed = elev.map((e, i) => {
+    let sum = 0, count = 0;
+    for (let j = Math.max(0, i-W); j <= Math.min(elev.length-1, i+W); j++) {
+      sum += elev[j]; count++;
+    }
+    return sum / count;
+  });
+
+  // Step 2: Find inflection points using cumulative elevation tracking
+  // Track cumulative gain/loss from last committed inflection.
+  // When cumulative change reverses direction by >= REVERSAL_THRESHOLD,
+  // commit the previous peak/valley as an inflection point.
+  const REVERSAL_THRESHOLD = 100; // m — direction must reverse by this much to split
+  const MIN_SEG_KM = 1.0;
+
+  const inflections = [0];
+  let runningGain = 0;
+  let peakVal = smoothed[0];
+  let peakIdx = 0;
+  let valleyVal = smoothed[0];
+  let valleyIdx = 0;
+  let trend = null; // 'up' or 'down'
+
+  for (let i = 1; i < smoothed.length; i++) {
+    const delta = smoothed[i] - smoothed[i-1];
+    runningGain += delta;
+
+    if (delta > 0) {
+      if (trend === 'down') {
+        // Was going down, now going up — potential valley
+        const elevChange = smoothed[peakIdx] - smoothed[i];
+        const distKm = (i - (inflections[inflections.length-1])) * kmPerPt;
+        if (Math.abs(elevChange) >= REVERSAL_THRESHOLD && distKm >= MIN_SEG_KM) {
+          inflections.push(valleyIdx);
+          runningGain = 0;
+          peakVal = smoothed[i]; peakIdx = i;
+        }
+      }
+      if (smoothed[i] > peakVal) { peakVal = smoothed[i]; peakIdx = i; }
+      trend = 'up';
+    } else if (delta < 0) {
+      if (trend === 'up') {
+        // Was going up, now going down — potential peak
+        const elevChange = smoothed[i] - smoothed[valleyIdx];
+        const distKm = (i - (inflections[inflections.length-1])) * kmPerPt;
+        if (Math.abs(elevChange) >= REVERSAL_THRESHOLD && distKm >= MIN_SEG_KM) {
+          inflections.push(peakIdx);
+          runningGain = 0;
+          valleyVal = smoothed[i]; valleyIdx = i;
+        }
+      }
+      if (smoothed[i] < valleyVal) { valleyVal = smoothed[i]; valleyIdx = i; }
+      trend = 'down';
+    }
+  }
+  inflections.push(smoothed.length - 1);
+
+  // Remove duplicates and sort
+  const uniq = [...new Set(inflections)].sort((a,b) => a-b);
+
+  // Step 3: Classify each segment by NET elevation change
+  // A segment is climbing/descending only if it gains/loses >= 300m net
+  const NET_THRESH = 300; // m — must gain/lose this much to be classified as climb/descent
+
+  const basePaceMinKm = (() => {
+    const h = (typeof user !== 'undefined' && user.timeObjectiveH != null) ? user.timeObjectiveH : 29;
+    const m = (typeof user !== 'undefined' && user.timeObjectiveM != null) ? user.timeObjectiveM : 32;
+    return (h * 60 + m) / Math.max(totalKm, 1);
+  })();
+
+  const TERRAINS = ['Rocky', 'Single track', 'Trail', 'Road', 'Rocky'];
+  const sections = [];
+  let cpEvery = Math.max(2, Math.floor((uniq.length - 1) / 3));
+  let cpCount = 0;
+
+  for (let i = 0; i < uniq.length - 1; i++) {
+    const startIdx = uniq[i];
+    const endIdx   = uniq[i + 1];
+
+    if (i > 0 && i % cpEvery === 0 && cpCount < 3) {
+      sections.push({
+        checkpoint: true,
+        name: 'Checkpoint w/ assistance · ' + Math.round(startIdx * kmPerPt) + ' km',
+        gels: 3, bananas: 1, water: '2x500ml',
+      });
+      cpCount++;
+    }
+
+    const segKm    = Math.max(0.5, Math.round((endIdx - startIdx) * kmPerPt * 10) / 10);
+    // Use raw elevation for net gain (smoothed compresses values)
+    const netGain  = elev[endIdx] - elev[startIdx];
+    const netGainM = Math.round(netGain);
+    const elevStr  = netGainM >= 0 ? '+' + netGainM + 'm' : netGainM + 'm';
+
+    let typeDir, typeLabel, paceMult;
+    if (netGainM >= NET_THRESH) {
+      typeDir = 'up'; typeLabel = 'Climbing';
+      const gainPerKm = netGain / segKm;
+      paceMult = 1.0 + Math.min((gainPerKm / 1000) * 15, 2.0);
+    } else if (netGainM <= -NET_THRESH) {
+      typeDir = 'down'; typeLabel = 'Descending';
+      const gainPerKm = Math.abs(netGain) / segKm;
+      paceMult = Math.max(0.55, 1.0 - (gainPerKm / 1000) * 8);
+    } else {
+      typeDir = 'flat'; typeLabel = 'Flat and easy';
+      paceMult = 0.9;
+    }
+
+    const paceMinKm = basePaceMinKm * paceMult;
+    const pMin = Math.floor(paceMinKm);
+    const pSec = Math.round((paceMinKm - pMin) * 60);
+
+    sections.push({
+      dist: segKm, elev: elevStr, elevDiff: netGainM,
+      type: typeLabel, typeDir,
+      pace: pMin + "'" + String(pSec).padStart(2, '0') + '"/km',
+      terrain: TERRAINS[i % TERRAINS.length],
+      conditions: 'Cold & dry',
+      startKm: Math.round(startIdx * kmPerPt),
+    });
+  }
+  return sections;
+}
+const WEATHER = [
+  {h:'8h',icon:'⛅'},{h:'9h',icon:'🌤'},{h:'10h',icon:'☀️'},{h:'11h',icon:'☀️'},
+  {h:'12h',icon:'🌤'},{h:'13h',icon:'⛅'},{h:'14h',icon:'🌧'},{h:'15h',icon:'⛈'},
+  {h:'16h',icon:'🌧'},{h:'17h',icon:'⛅'},{h:'18h',icon:'🌤'},{h:'19h',icon:'☀️'},
+];
+const GEAR = ['👟','🧢','🧤','💧','🎽','🩹','🔦','🥜','🧴','🪝','🥾','🩱'];
+
+let rdRoute = DEFAULT_ROUTE;
+let rdElevation = DEFAULT_ELEVATION;
+
+function projectRoute(route) {
+  const lats = route.map(p=>p[0]), lons = route.map(p=>p[1]);
+  const minLat=Math.min(...lats), maxLat=Math.max(...lats);
+  const minLon=Math.min(...lons), maxLon=Math.max(...lons);
+  const W=390, H=380, pad=28;
+  return route.map(([lat,lon]) => ({
+    x: pad + (lon-minLon)/(maxLon-minLon||1)*(W-pad*2),
+    y: H-pad - (lat-minLat)/(maxLat-minLat||1)*(H-pad*2),
+  }));
+}
+
+function renderMap() {
+  if (window.L && _leafletMap) { drawLeafletRoute(); return; }
+  const pts = projectRoute(rdRoute);
+  const line = document.getElementById('rd-route-line');
+  if (!line) return;
+  line.setAttribute('points', pts.map(p => p.x.toFixed(1)+','+p.y.toFixed(1)).join(' '));
+  const dotsG = document.getElementById('rd-section-dots');
+  if (!dotsG) return;
+  dotsG.innerHTML = '';
+  if (pts.length > 0) {
+    const s=pts[0], e=pts[pts.length-1];
+    dotsG.innerHTML += `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="5" fill="#3ddc84" stroke="#fff" stroke-width="1.5"/>`;
+    dotsG.innerHTML += `<circle cx="${e.x.toFixed(1)}" cy="${e.y.toFixed(1)}" r="5" fill="#ff4757" stroke="#fff" stroke-width="1.5"/>`;
+  }
+}
+
+// Cache sections so elevation can reference them
+let _cachedSections = [];
+
+function renderElevation(highlightIdx) {
+  const canvas = document.getElementById('rd-elev-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const el = rdElevation;
+  const minE = Math.min(...el), maxE = Math.max(...el);
+  const range = maxE - minE || 1;
+  ctx.clearRect(0,0,W,H);
+
+  const pts = el.map((e,i) => ({ x:(i/(el.length-1))*W, y:H-((e-minE)/range)*(H-8)-4 }));
+
+  // Draw section bands behind the elevation fill
+  const totalKm = rdRoute.length || el.length;
+  const runSections = _cachedSections.filter(s => !s.checkpoint);
+  if (runSections.length > 0) {
+    runSections.forEach((s, i) => {
+      const x1 = (s.startKm / totalKm) * W;
+      const nextSec = runSections[i + 1];
+      const endKm = nextSec ? nextSec.startKm : totalKm;
+      const x2 = (endKm / totalKm) * W;
+      const isHighlighted = (i === highlightIdx);
+
+      // Background band — tinted by type
+      let bandColor;
+      if (s.typeDir === 'up')        bandColor = isHighlighted ? 'rgba(255,107,53,0.35)' : 'rgba(255,107,53,0.12)';
+      else if (s.typeDir === 'down') bandColor = isHighlighted ? 'rgba(116,185,255,0.35)' : 'rgba(116,185,255,0.12)';
+      else                           bandColor = isHighlighted ? 'rgba(252,27,56,0.25)'  : 'rgba(252,27,56,0.08)';
+
+      ctx.fillStyle = bandColor;
+      ctx.fillRect(x1, 0, x2 - x1, H);
+
+      // Divider line
+      if (i > 0) {
+        ctx.beginPath(); ctx.moveTo(x1, 0); ctx.lineTo(x1, H);
+        ctx.strokeStyle = isHighlighted ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = isHighlighted ? 1.5 : 1;
+        ctx.setLineDash([]); ctx.stroke();
+      }
+
+      // Section label — icon + distance
+      const icon = s.typeDir === 'up' ? '↑' : s.typeDir === 'down' ? '↓' : '→';
+      const bandW = x2 - x1;
+      if (bandW > 18) {
+        ctx.font = `bold ${Math.min(10, bandW * 0.18)}px DM Sans, sans-serif`;
+        ctx.fillStyle = isHighlighted ? '#fff' : 'rgba(255,255,255,0.55)';
+        ctx.textAlign = 'center';
+        const cx = x1 + bandW / 2;
+        ctx.fillText(icon, cx, 12);
+        if (bandW > 32) {
+          ctx.font = `${Math.min(8, bandW * 0.14)}px DM Sans, sans-serif`;
+          ctx.fillStyle = isHighlighted ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.4)';
+          ctx.fillText(s.dist + 'km', cx, 22);
+        }
+      }
+    });
+  }
+
+  // Elevation gradient fill
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'rgba(255,107,53,0.75)');
+  grad.addColorStop(0.6,'rgba(255,71,87,0.4)');
+  grad.addColorStop(1,'rgba(255,71,87,0.02)');
+  ctx.beginPath(); ctx.moveTo(pts[0].x, H);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length-1].x, H); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Elevation top line
+  ctx.beginPath(); pts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+  ctx.strokeStyle = '#ff6b35'; ctx.lineWidth = 2; ctx.setLineDash([]); ctx.stroke();
+
+  // Labels
+  const elevMaxEl = document.getElementById('rd-elev-max');
+  if (elevMaxEl) elevMaxEl.textContent = maxE.toLocaleString() + ' m';
+  const midEl = document.getElementById('rd-dist-mid');
+  if (midEl) midEl.textContent = Math.round(rdRoute.length/2) + ' km';
+  const totEl = document.getElementById('rd-dist-total');
+  if (totEl) totEl.textContent = rdRoute.length + ' km';
+}
+
+function initElevScrub() {
+  const canvas = document.getElementById('rd-elev-canvas');
+  const tip = document.getElementById('rd-scrub-tip');
+  if (!canvas) return;
+  canvas.removeEventListener('mousemove', canvas._scrub);
+  canvas.removeEventListener('mouseleave', canvas._hide);
+  canvas.removeEventListener('touchmove', canvas._touch);
+  canvas.removeEventListener('touchend', canvas._hide);
+
+  canvas._scrub = function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const idx = Math.round(pct * (rdElevation.length - 1));
+    if (tip) {
+      tip.style.display = 'block';
+      tip.style.left = (pct * 100) + '%';
+      const kmEl = document.getElementById('rd-scrub-km');
+      const elevEl = document.getElementById('rd-scrub-elev');
+      if (kmEl) kmEl.textContent = Math.round(pct * rdRoute.length) + ' km';
+      if (elevEl) elevEl.textContent = (rdElevation[idx] || 0) + ' m';
+    }
+    updateLeafletPosition(pct);
+    renderElevation();
+    const ctx = canvas.getContext('2d');
+    const x = pct * canvas.width;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height);
+    ctx.strokeStyle = 'rgba(252,27,56,0.8)'; ctx.lineWidth = 1.5; ctx.stroke();
+    const minE=Math.min(...rdElevation), maxE=Math.max(...rdElevation);
+    const y = canvas.height - ((rdElevation[idx]-minE)/(maxE-minE||1))*(canvas.height-8)-4;
+    ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fillStyle='#FC1B38'; ctx.fill();
+  };
+  canvas._hide = function() {
+    if (tip) tip.style.display = 'none';
+    if (_leafletMarker && _leafletMap) _leafletMap.removeLayer(_leafletMarker);
+    _leafletMarker = null;
+    renderElevation();
+  };
+  canvas._touch = function(e) { e.preventDefault(); canvas._scrub(e); };
+
+  canvas.addEventListener('mousemove', canvas._scrub);
+  canvas.addEventListener('mouseleave', canvas._hide);
+  canvas.addEventListener('touchmove', canvas._touch, {passive:false});
+  canvas.addEventListener('touchend', canvas._hide);
+}
+
+function importGPX(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Parse GPX
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(e.target.result, 'application/xml');
+    let pts = Array.from(xml.getElementsByTagName('trkpt'));
+    if (!pts.length) pts = Array.from(xml.getElementsByTagName('rtept'));
+    if (!pts.length) pts = Array.from(xml.getElementsByTagName('wpt'));
+
+    if (!pts.length) {
+      alert('No points found in GPX.');
+      return;
+    }
+
+    // Build route and elevation arrays
+    rdRoute = [];
+    rdElevation = [];
+    pts.forEach(pt => {
+      const lat = parseFloat(pt.getAttribute('lat'));
+      const lon = parseFloat(pt.getAttribute('lon'));
+      const eleTag = pt.getElementsByTagName('ele')[0];
+      const ele = eleTag ? parseFloat(eleTag.textContent) : 1000;
+      if (!isNaN(lat) && !isNaN(lon)) {
+        rdRoute.push([lat, lon]);
+        rdElevation.push(isNaN(ele) ? 1000 : Math.round(ele));
+      }
+    });
+
+    // Downsample
+    if (rdRoute.length > 300) {
+      const step = Math.floor(rdRoute.length / 300);
+      rdRoute     = rdRoute.filter((_,i) => i % step === 0);
+      rdElevation = rdElevation.filter((_,i) => i % step === 0);
+    }
+
+    // Update race name
+    const name = file.name.replace('.gpx','').replace(/[_-]/g,' ').toUpperCase();
+    const el1 = document.getElementById('rd-race-name-map');
+    const el2 = document.getElementById('plan-race-name');
+    if (el1) el1.textContent = name;
+    if (el2) el2.textContent = name;
+
+    // Hide placeholder
+    const ph = document.getElementById('rd-map-placeholder');
+    if (ph) ph.style.display = 'none';
+
+    // Show buttons and content
+    const btns = document.getElementById('rd-action-btns');
+    if (btns) btns.style.display = 'flex';
+    const content = document.getElementById('rd-gpx-content');
+    if (content) content.style.display = 'block';
+
+    // Render (each isolated)
+    try { renderElevation(); } catch(e) {}
+    try { initElevScrub(); }  catch(e) {}
+    try { renderSections(); } catch(e) {}
+    try { renderWeather(); }  catch(e) {}
+    try { renderGear(); }     catch(e) {}
+
+    // Map — deferred so it never blocks the above
+    setTimeout(function() {
+      try {
+        if (window.L && _leafletMap) {
+          drawLeafletRoute();
+        } else {
+          tryInitMap();
+        }
+      } catch(e) {}
+    }, 200);
+  };
+
+  reader.readAsText(file);
+}
+
+// Shared helper — tries to init Leaflet, loads it first if needed
+function tryInitMap() {
+  if (window.L) {
+    setTimeout(initLeafletMap, 50);
+  } else {
+    loadLeaflet();
+    let attempts = 0;
+    const poll = setInterval(() => {
+      attempts++;
+      if (window.L) { clearInterval(poll); setTimeout(initLeafletMap, 50); }
+      else if (attempts > 50) { clearInterval(poll); }
+    }, 200);
+  }
+}
+
+function renderWeather() {
+  const el = document.getElementById('rd-weather-strip');
+  if (!el) return;
+  el.innerHTML = WEATHER.map(w => `
+    <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:7px 10px;min-width:44px;">
+      <div style="font-size:10px;color:var(--muted);">${w.h}</div>
+      <div style="font-size:18px;">${w.icon}</div>
+    </div>`).join('');
+}
+
+// Leaflet layer for section highlight on map
+let _sectionHighlightLayer = null;
+
+function highlightSectionOnMap(s, runSections, idx) {
+  // Remove previous highlight
+  if (_sectionHighlightLayer && _leafletMap) {
+    _leafletMap.removeLayer(_sectionHighlightLayer);
+    _sectionHighlightLayer = null;
+  }
+  if (!s || !window.L || !_leafletMap || rdRoute.length < 2) return;
+
+  const totalKm = rdRoute.length;
+  const startPct = s.startKm / totalKm;
+  const nextSec = runSections[idx + 1];
+  const endKm = nextSec ? nextSec.startKm : totalKm;
+  const endPct = endKm / totalKm;
+
+  const startIdx = Math.floor(startPct * (rdRoute.length - 1));
+  const endIdx = Math.min(Math.ceil(endPct * (rdRoute.length - 1)), rdRoute.length - 1);
+  const segment = rdRoute.slice(startIdx, endIdx + 1);
+  if (segment.length < 2) return;
+
+  const color = s.typeDir === 'up' ? '#ff6b35' : s.typeDir === 'down' ? '#74b9ff' : '#FC1B38';
+  _sectionHighlightLayer = L.polyline(segment, {
+    color, weight: 6, opacity: 1,
+    lineCap: 'round', lineJoin: 'round',
+  }).addTo(_leafletMap);
+
+  // Pan map to show this section
+  _leafletMap.fitBounds(_sectionHighlightLayer.getBounds(), { padding: [40, 40], maxZoom: 13 });
+}
+
+function clearSectionHighlight() {
+  if (_sectionHighlightLayer && _leafletMap) {
+    _leafletMap.removeLayer(_sectionHighlightLayer);
+    _sectionHighlightLayer = null;
+  }
+  // Restore full route view
+  if (_leafletPolyline && _leafletMap) {
+    _leafletMap.fitBounds(_leafletPolyline.getBounds(), { padding: [24, 24] });
+  }
+  renderElevation();
+}
+
+function renderSections() {
+  const el = document.getElementById('rd-sections-list');
+  if (!el) return;
+  const sections = generateSectionsFromElevation(rdElevation, rdRoute);
+  _cachedSections = sections; // cache for elevation rendering
+  const runSections = sections.filter(s => !s.checkpoint);
+  const sectionCount = runSections.length;
+  const countEl = document.getElementById('rd-section-count');
+  if (countEl) countEl.textContent = sectionCount + ' sections';
+
+  // Draw section bands on elevation canvas
+  renderElevation();
+
+  el.innerHTML = sections.map((s, rawIdx) => {
+    // Compute the run-section index (excludes checkpoints)
+    const runIdx = runSections.indexOf(s);
+
+    if (s.checkpoint) {
+      return `
+        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:13px 15px;margin-bottom:9px;display:flex;align-items:flex-start;gap:12px;">
+          <div style="font-size:18px;flex-shrink:0;margin-top:2px;">✅</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:6px;">${s.name}</div>
+            <div style="display:flex;gap:16px;">
+              <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;">Gels</div><div style="font-size:12px;color:var(--text);">${s.gels}</div></div>
+              <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;">Water</div><div style="font-size:12px;color:var(--text);">${s.water}</div></div>
+              <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;">Snack</div><div style="font-size:12px;color:var(--text);">${s.bananas} banana</div></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    const typeIcon  = s.typeDir === 'flat' ? '→' : (s.typeDir === 'down' ? '↓' : '↑');
+    const typeColor = s.typeDir === 'flat' ? 'var(--accent)' : (s.typeDir === 'down' ? '#74b9ff' : 'var(--accent2)');
+
+    return `
+      <div class="rd-section-card"
+           data-run-idx="${runIdx}"
+           style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;margin-bottom:9px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s;"
+           onclick="onSectionClick(${runIdx})">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:${typeColor}33;border:1px solid ${typeColor};display:flex;align-items:center;justify-content:center;font-size:14px;color:${typeColor};flex-shrink:0;">${typeIcon}</div>
+          <div style="font-size:13px;font-weight:600;color:#fff;flex:1;">${s.dist} km · ${s.elev} · ${s.type}</div>
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Pace</div><div style="font-size:12px;color:var(--text);margin-top:1px;font-weight:600;">${s.pace}</div></div>
+          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Terrain</div><div style="font-size:12px;color:var(--text);margin-top:1px;">${s.terrain}</div></div>
+          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Conditions</div><div style="font-size:12px;color:var(--text);margin-top:1px;">${s.conditions}</div></div>
+          <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">From</div><div style="font-size:12px;color:var(--text);margin-top:1px;">${s.startKm} km</div></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+let _activeSection = null;
+
+function onSectionClick(runIdx) {
+  const runSections = _cachedSections.filter(s => !s.checkpoint);
+  const s = runSections[runIdx];
+  if (!s) return;
+
+  // Toggle off if clicking the same section again
+  if (_activeSection === runIdx) {
+    _activeSection = null;
+    document.querySelectorAll('.rd-section-card').forEach(el => {
+      el.style.borderColor = 'var(--border)';
+      el.style.boxShadow = 'none';
+    });
+    clearSectionHighlight();
+    return;
+  }
+
+  _activeSection = runIdx;
+
+  // Highlight the clicked card, reset all others
+  document.querySelectorAll('.rd-section-card').forEach(el => {
+    const idx = parseInt(el.dataset.runIdx);
+    const sec = runSections[idx];
+    const typeColor = sec
+      ? (sec.typeDir === 'flat' ? 'var(--accent)' : sec.typeDir === 'down' ? '#74b9ff' : 'var(--accent2)')
+      : 'var(--border)';
+    el.style.borderColor = (idx === runIdx) ? typeColor : 'var(--border)';
+    el.style.boxShadow = (idx === runIdx) ? `0 0 0 1px ${typeColor}44` : 'none';
+  });
+
+  // Highlight on elevation canvas
+  renderElevation(runIdx);
+
+  // Highlight on map
+  highlightSectionOnMap(s, runSections, runIdx);
+}
+
+function renderGear() {
+  const el = document.getElementById('rd-gear-grid');
+  if (!el) return;
+  el.innerHTML = GEAR.map(g => `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;">${g}</div>
+  `).join('');
+}
+
+function syncRaceDayFromUser() {
+  if (typeof user !== 'undefined' && user.timeObjectiveH != null) {
+    const m = String(user.timeObjectiveM || 0).padStart(2,'0');
+    const el = document.getElementById('rd-time-obj');
+    if (el) el.textContent = user.timeObjectiveH + 'h' + m;
+  }
+  if (typeof user !== 'undefined' && user.raceName) {
+    const nameEl = document.getElementById('rd-race-name-map');
+    if (nameEl) nameEl.textContent = user.raceName.toUpperCase();
+  }
+}
+
+function initRaceDay() {
+  syncRaceDayFromUser();
+
+  // Show/hide based on whether GPX has been imported
+  const hasGPX = rdRoute !== DEFAULT_ROUTE && rdRoute.length > 2;
+  const placeholder = document.getElementById('rd-map-placeholder');
+  const actionBtns = document.getElementById('rd-action-btns');
+  const gpxContent = document.getElementById('rd-gpx-content');
+  // Placeholder covers full screen (status bar to tab bar)
+  if (placeholder) placeholder.style.display = hasGPX ? 'none' : 'flex';
+  if (actionBtns) actionBtns.style.display = hasGPX ? 'flex' : 'none';
+  if (gpxContent) gpxContent.style.display = hasGPX ? 'block' : 'none';
+
+
+  renderElevation();
+  initElevScrub();
+  renderWeather();
+  renderSections();
+  renderGear();
+
+  // Use shared tryInitMap helper
+  setTimeout(tryInitMap, 150);
+}
+
+// Init race day when navigating there — called directly from tab button
+
+
+// Expose all functions to global scope for onclick handlers
+window.goTo = goTo;
+window.adj = adj;
+window.saveWeeklyHours = saveWeeklyHours;
+window.saveSessionLength = saveSessionLength;
+window.toggleApp = toggleApp;
+window.saveApps = saveApps;
+window.toggleTerrain = toggleTerrain;
+window.pickRaceType = pickRaceType;
+window.pickRace = pickRace;
+window.filterRaces = filterRaces;
+window.buildCal = buildCal;
+window.navCal = navCal;
+window.selDay = selDay;
+window.finishOnboarding = finishOnboarding;
+window.renderProfile = renderProfile;
+window.setField = setField;
+window.updateCompletion = updateCompletion;
+window.resetOnboarding = resetOnboarding;
+window.openSheet = openSheet;
+window.closeSheet = closeSheet;
+window.maybeClose = maybeClose;
+window.saveSheet = saveSheet;
+window.spa = spa;
+window.stToggle = stToggle;
+window.saToggle = saToggle;
+window.srtSet = srtSet;
+window.sRacePick = sRacePick;
+window.sRaceFilter = sRaceFilter;
+window.buildMiniCal = buildMiniCal;
+window.mCalNav = mCalNav;
+window.mCalSel = mCalSel;
+window.generatePlanData = generatePlanData;
+window.renderTimeline = renderTimeline;
+window.renderWeekDetail = renderWeekDetail;
+window.planNav = planNav;
+window.planGoTo = planGoTo;
+window.toggleRunComplete = toggleRunComplete;
+window.initPlan = initPlan;
+window.initLeafletMap = initLeafletMap;
+window.drawLeafletRoute = drawLeafletRoute;
+window.updateLeafletPosition = updateLeafletPosition;
+window.generateSectionsFromElevation = generateSectionsFromElevation;
+window.projectRoute = projectRoute;
+window.renderMap = renderMap;
+window.renderElevation = renderElevation;
+window.initElevScrub = initElevScrub;
+window.importGPX = importGPX;
+window.tryInitMap = tryInitMap;
+window.renderWeather = renderWeather;
+window.highlightSectionOnMap = highlightSectionOnMap;
+window.clearSectionHighlight = clearSectionHighlight;
+window.renderSections = renderSections;
+window.onSectionClick = onSectionClick;
+window.renderGear = renderGear;
+window.syncRaceDayFromUser = syncRaceDayFromUser;
+window.initRaceDay = initRaceDay;
+window.loadLeaflet = loadLeaflet;
+// ─────────────────────────────────────────
+//  PAGE INIT
+// ─────────────────────────────────────────
+buildCal();
+initPlan();
+(function startClock() {
+  function tick() {
+    const el = document.getElementById('clock');
+    if (el) {
+      const n = new Date();
+      el.textContent = n.getHours() + ':' + String(n.getMinutes()).padStart(2,'0');
+    }
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
+})();
+</script>
+</body>
+</html>
