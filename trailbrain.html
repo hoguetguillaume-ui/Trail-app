@@ -776,7 +776,7 @@ h1.brand { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacin
         <!-- WEATHER STRIP -->
         <div style="padding:0 16px 14px;">
           <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Scheduled weather</div>
-          <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;" id="rd-weather-strip"></div>
+          <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-ms-overflow-style:none;" id="rd-weather-strip"></div>
         </div>
 
         <!-- SECTIONS HEADER -->
@@ -937,6 +937,8 @@ h1.brand { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacin
   </div>
 
 </div><!-- /phone-shell -->
+
+</html>
 
 </html>
 
@@ -1439,17 +1441,18 @@ function renderWeekDetail() {
       </div>`;
   }).join('');
 
-  // Workload totals
-  const totDist = wk.runs.reduce((s, r) => s + r.dist, 0);
-  const totTime = wk.runs.reduce((s, r) => s + r.dur, 0);
-  const totElev = wk.runs.reduce((s, r) => s + r.elev, 0);
-  const totCal  = wk.runs.reduce((s, r) => s + r.cal, 0);
+  // Workload totals — only count completed runs
+  const completedOnly = wk.runs.filter(r => r.completed);
+  const totDist = completedOnly.reduce((s, r) => s + r.dist, 0);
+  const totTime = completedOnly.reduce((s, r) => s + r.dur, 0);
+  const totElev = completedOnly.reduce((s, r) => s + r.elev, 0);
+  const totCal  = completedOnly.reduce((s, r) => s + r.cal, 0);
   const h = Math.floor(totTime / 60), m = totTime % 60;
 
-  document.getElementById('wl-dist').textContent = `${totDist} km`;
-  document.getElementById('wl-time').textContent = `${h}h ${m}mn`;
-  document.getElementById('wl-elev').textContent = `${totElev} m`;
-  document.getElementById('wl-cal').textContent = `${totCal} Kcal`;
+  document.getElementById('wl-dist').textContent = completedOnly.length ? `${totDist} km` : '0 km';
+  document.getElementById('wl-time').textContent = completedOnly.length ? `${h}h ${m}mn` : '0h 0mn';
+  document.getElementById('wl-elev').textContent = completedOnly.length ? `${totElev} m` : '0 m';
+  document.getElementById('wl-cal').textContent  = completedOnly.length ? `${totCal} Kcal` : '0 Kcal';
 }
 
 // ─── NAVIGATE ───
@@ -1616,7 +1619,8 @@ const DEFAULT_ELEVATION = [
 function generateSectionsFromElevation(elev, route) {
   if (!elev || elev.length < 2) return [];
 
-  const totalKm = route.length || elev.length;
+  // Use real GPS-derived km if available, else fall back to point count
+  const totalKm = (typeof rdTotalKm !== 'undefined' && rdTotalKm > 0) ? rdTotalKm : (route.length > 2 ? calcRouteTotalKm(route) : elev.length);
   const kmPerPt = totalKm / elev.length;
 
   // Step 1: Smooth elevation to remove GPS noise
@@ -1753,6 +1757,24 @@ const GEAR = ['👟','🧢','🧤','💧','🎽','🩹','🔦','🥜','🧴','�
 
 let rdRoute = DEFAULT_ROUTE;
 let rdElevation = DEFAULT_ELEVATION;
+let rdTotalKm = 0; // actual km calculated from GPX coords
+
+// Haversine distance between two [lat,lon] points in km
+function haversineDist(a, b) {
+  const R = 6371;
+  const dLat = (b[0]-a[0]) * Math.PI/180;
+  const dLon = (b[1]-a[1]) * Math.PI/180;
+  const s = Math.sin(dLat/2)*Math.sin(dLat/2) +
+    Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*
+    Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+
+function calcRouteTotalKm(route) {
+  let km = 0;
+  for (let i = 1; i < route.length; i++) km += haversineDist(route[i-1], route[i]);
+  return Math.round(km * 10) / 10;
+}
 
 function projectRoute(route) {
   const lats = route.map(p=>p[0]), lons = route.map(p=>p[1]);
@@ -1859,10 +1881,11 @@ function renderElevation(highlightIdx) {
   // Labels
   const elevMaxEl = document.getElementById('rd-elev-max');
   if (elevMaxEl) elevMaxEl.textContent = maxE.toLocaleString() + ' m';
+  const realKm = (rdTotalKm > 0) ? rdTotalKm : calcRouteTotalKm(rdRoute);
   const midEl = document.getElementById('rd-dist-mid');
-  if (midEl) midEl.textContent = Math.round(rdRoute.length/2) + ' km';
+  if (midEl) midEl.textContent = Math.round(realKm / 2) + ' km';
   const totEl = document.getElementById('rd-dist-total');
-  if (totEl) totEl.textContent = rdRoute.length + ' km';
+  if (totEl) totEl.textContent = realKm + ' km';
 }
 
 function initElevScrub() {
@@ -1882,9 +1905,10 @@ function initElevScrub() {
     if (tip) {
       tip.style.display = 'block';
       tip.style.left = (pct * 100) + '%';
-      const kmEl = document.getElementById('rd-scrub-km');
+      const realKmScrub = (rdTotalKm > 0) ? rdTotalKm : calcRouteTotalKm(rdRoute);
+        const kmEl = document.getElementById('rd-scrub-km');
       const elevEl = document.getElementById('rd-scrub-elev');
-      if (kmEl) kmEl.textContent = Math.round(pct * rdRoute.length) + ' km';
+      if (kmEl) kmEl.textContent = Math.round(pct * realKmScrub) + ' km';
       if (elevEl) elevEl.textContent = (rdElevation[idx] || 0) + ' m';
     }
     updateLeafletPosition(pct);
@@ -1949,6 +1973,9 @@ function importGPX(input) {
       rdRoute     = rdRoute.filter((_,i) => i % step === 0);
       rdElevation = rdElevation.filter((_,i) => i % step === 0);
     }
+
+    // Calculate real total km from coordinates
+    rdTotalKm = calcRouteTotalKm(rdRoute);
 
     // Update race name
     const name = file.name.replace('.gpx','').replace(/[_-]/g,' ').toUpperCase();
@@ -2024,7 +2051,7 @@ function highlightSectionOnMap(s, runSections, idx) {
   }
   if (!s || !window.L || !_leafletMap || rdRoute.length < 2) return;
 
-  const totalKm = rdRoute.length;
+  const totalKm = (rdTotalKm > 0) ? rdTotalKm : calcRouteTotalKm(rdRoute);
   const startPct = s.startKm / totalKm;
   const nextSec = runSections[idx + 1];
   const endKm = nextSec ? nextSec.startKm : totalKm;
@@ -2252,6 +2279,8 @@ window.onSectionClick = onSectionClick;
 window.renderGear = renderGear;
 window.syncRaceDayFromUser = syncRaceDayFromUser;
 window.initRaceDay = initRaceDay;
+window.haversineDist = haversineDist;
+window.calcRouteTotalKm = calcRouteTotalKm;
 window.loadLeaflet = loadLeaflet;
 // ─────────────────────────────────────────
 //  PAGE INIT
