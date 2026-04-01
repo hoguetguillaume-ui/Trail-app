@@ -730,33 +730,7 @@ h1.brand { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacin
     </div>
 
     <!-- FULL-SCREEN placeholder — covers everything before GPX import -->
-    <div id="rd-map-placeholder" style="position:absolute;inset:44px 0 82px 0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:radial-gradient(ellipse 140% 100% at 50% 60%,#1c2e1c,#080f08);">
-      <!-- Topo lines decoration -->
-      <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.08;" viewBox="0 0 390 630" preserveAspectRatio="xMidYMid slice">
-        <ellipse cx="195" cy="380" rx="340" ry="220" fill="none" stroke="#fff" stroke-width="1"/>
-        <ellipse cx="195" cy="380" rx="280" ry="170" fill="none" stroke="#fff" stroke-width="1"/>
-        <ellipse cx="195" cy="380" rx="220" ry="130" fill="none" stroke="#fff" stroke-width="1"/>
-        <ellipse cx="195" cy="380" rx="160" ry="95" fill="none" stroke="#fff" stroke-width="1"/>
-        <ellipse cx="195" cy="380" rx="110" ry="65" fill="none" stroke="#fff" stroke-width="1"/>
-        <ellipse cx="195" cy="380" rx="65" ry="38" fill="none" stroke="#fff" stroke-width="1"/>
-        <ellipse cx="90" cy="180" rx="120" ry="80" fill="none" stroke="#fff" stroke-width="1"/>
-        <ellipse cx="90" cy="180" rx="80" ry="52" fill="none" stroke="#fff" stroke-width="1"/>
-        <ellipse cx="310" cy="220" rx="100" ry="65" fill="none" stroke="#fff" stroke-width="1"/>
-        <ellipse cx="310" cy="220" rx="65" ry="42" fill="none" stroke="#fff" stroke-width="1"/>
-      </svg>
-      <!-- Content -->
-      <div style="position:relative;text-align:center;display:flex;flex-direction:column;align-items:center;gap:20px;">
-        <div style="font-size:48px;opacity:0.25;">🗻</div>
-        <div>
-          <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:6px;">No route yet</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.25);">Import a GPX file to generate your race plan</div>
-        </div>
-        <label style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:15px 32px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 6px 24px rgba(252,27,56,0.4);letter-spacing:0.2px;">
-          📂 Import GPX
-          <input type="file" accept=".gpx" style="display:none;" onchange="importGPX(this)">
-        </label>
-      </div>
-    </div>
+    
 
     <!-- SCROLLABLE BODY — CTAs scroll with content -->
     <div class="scroll-body" style="padding:0;">
@@ -963,6 +937,8 @@ h1.brand { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacin
   </div>
 
 </div><!-- /phone-shell -->
+
+</html>
 
 </html>
 
@@ -1982,8 +1958,7 @@ function importGPX(input) {
     if (el2) el2.textContent = name;
 
     // Hide placeholder
-    const ph = document.getElementById('rd-map-placeholder');
-    if (ph) ph.style.display = 'none';
+    document.querySelectorAll('#rd-map-placeholder').forEach(el => el.style.display = 'none');
 
     // Show buttons and content
     const btns = document.getElementById('rd-action-btns');
@@ -2199,11 +2174,10 @@ function initRaceDay() {
 
   // Show/hide based on whether GPX has been imported
   const hasGPX = rdRoute !== DEFAULT_ROUTE && rdRoute.length > 2;
-  const placeholder = document.getElementById('rd-map-placeholder');
   const actionBtns = document.getElementById('rd-action-btns');
   const gpxContent = document.getElementById('rd-gpx-content');
   // Placeholder covers full screen (status bar to tab bar)
-  if (placeholder) placeholder.style.display = hasGPX ? 'none' : 'flex';
+  document.querySelectorAll('#rd-map-placeholder').forEach(el => el.style.display = hasGPX ? 'none' : 'flex');
   if (actionBtns) actionBtns.style.display = hasGPX ? 'flex' : 'none';
   if (gpxContent) gpxContent.style.display = hasGPX ? 'block' : 'none';
 
